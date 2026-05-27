@@ -1,0 +1,16 @@
+{
+  "placeholderImages": [
+    {
+      "id": "code-editor-hero",
+      "description": "A futuristic holographic code editor interface",
+      "imageUrl": "https://picsum.photos/seed/code-ide/1200/800",
+      "imageHint": "holographic coding"
+    },
+    {
+      "id": "ai-assistant",
+      "description": "A glowing neural network assistant",
+      "imageUrl": "https://picsum.photos/seed/ai-brain/400/400",
+      "imageHint": "artificial intelligence"
+    }
+  ]
+}
