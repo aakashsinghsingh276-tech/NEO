@@ -4,17 +4,18 @@ import { useState } from "react"
 import { Sidebar } from "@/components/ide/Sidebar"
 import { TopNav } from "@/components/ide/TopNav"
 import { ProjectExplorer } from "@/components/ide/ProjectExplorer"
+import { SearchSidebar, GitSidebar, DebugSidebar, SecuritySidebar } from "@/components/ide/SidebarViews"
 import { EditorTabs } from "@/components/ide/EditorTabs"
 import { CodeEditor } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
-import { FileCode, Braces, Terminal } from "lucide-react"
+import { FileCode, Braces, Terminal as TerminalIcon } from "lucide-react"
 import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel } from "@/components/ide/FeaturePanels"
 
 const initialTabs = [
   { id: '1', name: 'app.tsx', icon: <FileCode className="h-4 w-4" />, active: true },
   { id: '2', name: 'styles.css', icon: <Braces className="h-4 w-4" />, active: false },
-  { id: '3', name: 'terminal.sh', icon: <Terminal className="h-4 w-4" />, active: false }
+  { id: '3', name: 'terminal.sh', icon: <TerminalIcon className="h-4 w-4" />, active: false }
 ]
 
 const initialCode = `/**
@@ -53,7 +54,24 @@ export default function IDEPage() {
     setTabs(tabs.filter(t => t.id !== id))
   }
 
-  const renderContent = () => {
+  const renderSidebarView = () => {
+    switch(activeSidebarTab) {
+      case 'explorer':
+        return <ProjectExplorer searchQuery={searchQuery} />
+      case 'search':
+        return <SearchSidebar searchQuery={searchQuery} onSearch={setSearchQuery} />
+      case 'git':
+        return <GitSidebar />
+      case 'run':
+        return <DebugSidebar />
+      case 'security':
+        return <SecuritySidebar />
+      default:
+        return <div className="w-[240px] border-r border-border bg-sidebar/50" />
+    }
+  }
+
+  const renderMainContent = () => {
     switch(activeSidebarTab) {
       case 'neocad':
         return <NeoCADPanel />
@@ -78,10 +96,10 @@ export default function IDEPage() {
       <div className="flex-1 flex overflow-hidden">
         <Sidebar activeId={activeSidebarTab} onActiveChange={setActiveSidebarTab} />
         
-        {activeSidebarTab === 'explorer' && <ProjectExplorer searchQuery={searchQuery} />}
+        {renderSidebarView()}
         
         <div className="flex-1 flex flex-col relative overflow-hidden border-l border-border/50">
-          {renderContent()}
+          {renderMainContent()}
           <TerminalView />
         </div>
       </div>
