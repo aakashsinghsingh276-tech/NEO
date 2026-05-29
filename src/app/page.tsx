@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { Sidebar } from "@/components/ide/Sidebar"
 import { TopNav } from "@/components/ide/TopNav"
 import { ProjectExplorer } from "@/components/ide/ProjectExplorer"
@@ -9,55 +9,166 @@ import { EditorTabs } from "@/components/ide/EditorTabs"
 import { CodeEditor } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
-import { FileCode, Braces, Terminal as TerminalIcon } from "lucide-react"
+import { FileCode, Braces, Terminal as TerminalIcon, FileText } from "lucide-react"
 import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel } from "@/components/ide/FeaturePanels"
+import { Toaster } from "@/components/ui/toaster"
+import { useToast } from "@/hooks/use-toast"
 
-const initialTabs = [
-  { id: '1', name: 'app.tsx', icon: <FileCode className="h-4 w-4" />, active: true },
-  { id: '2', name: 'styles.css', icon: <Braces className="h-4 w-4" />, active: false },
-  { id: '3', name: 'terminal.sh', icon: <TerminalIcon className="h-4 w-4" />, active: false }
-]
-
-const initialCode = `/**
- * NEOCADE v1.0.0
- * Quantum AI Platform
- */
-
-import { QuantumCore } from '@neocade/core';
-
-async function main() {
-  const ai = new QuantumCore();
-  
-  // Initialize AI Reasoning
-  await ai.initialize({
-    mode: 'Jarvis',
-    acceleration: 'Quantum'
-  });
-
-  console.log("Systems Online. Hello World.");
+export interface FileNode {
+  id: string
+  name: string
+  type: 'file' | 'folder'
+  children?: FileNode[]
+  isOpen?: boolean
+  content?: string
 }
 
-main();
-`
+const initialFiles: FileNode[] = [
+  {
+    id: 'src',
+    name: 'src',
+    type: 'folder',
+    isOpen: true,
+    children: [
+      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import { QuantumCore } from "@neocade/core";\n\nconsole.log("NEOCADE INITIALIZED");' },
+      { id: 'styles.css', name: 'styles.css', type: 'file', content: 'body { background: #000; color: #00BFFF; }' }
+    ]
+  },
+  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEOCADE Project\nQuantum-ready workspace.' }
+]
 
 export default function IDEPage() {
   const [activeSidebarTab, setActiveSidebarTab] = useState('explorer')
-  const [tabs, setTabs] = useState(initialTabs)
-  const [code, setCode] = useState(initialCode)
+  const [files, setFiles] = useState<FileNode[]>(initialFiles)
+  const [tabs, setTabs] = useState<{id: string, name: string, icon: any, active: boolean}[]>([
+    { id: 'app.tsx', name: 'app.tsx', icon: <FileCode className="h-4 w-4" />, active: true }
+  ])
+  const [selectedId, setSelectedId] = useState<string | null>('app.tsx')
   const [searchQuery, setSearchQuery] = useState('')
+  const { toast } = useToast()
+
+  const activeFile = useMemo(() => {
+    const findFile = (nodes: FileNode[], id: string): FileNode | null => {
+      for (const node of nodes) {
+        if (node.id === id) return node
+        if (node.children) {
+          const found = findFile(node.children, id)
+          if (found) return found
+        }
+      }
+      return null
+    }
+    return findFile(files, tabs.find(t => t.active)?.id || '')
+  }, [files, tabs])
+
+  const handleUpdateCode = (newCode: string) => {
+    const updateInTree = (nodes: FileNode[]): FileNode[] => {
+      return nodes.map(node => {
+        if (node.id === activeFile?.id) return { ...node, content: newCode }
+        if (node.children) return { ...node, children: updateInTree(node.children) }
+        return node
+      })
+    }
+    setFiles(updateInTree(files))
+  }
 
   const handleTabClick = (id: string) => {
     setTabs(tabs.map(t => ({ ...t, active: t.id === id })))
+    setSelectedId(id)
   }
 
   const handleTabClose = (id: string) => {
-    setTabs(tabs.filter(t => t.id !== id))
+    const newTabs = tabs.filter(t => t.id !== id)
+    if (newTabs.length > 0 && !newTabs.some(t => t.active)) {
+      newTabs[0].active = true
+    }
+    setTabs(newTabs)
+  }
+
+  const openFile = (node: FileNode) => {
+    if (node.type === 'folder') return
+    if (!tabs.find(t => t.id === node.id)) {
+      setTabs([...tabs.map(t => ({ ...t, active: false })), { 
+        id: node.id, 
+        name: node.name, 
+        icon: node.name.endsWith('.tsx') ? <FileCode className="h-4 w-4" /> : <FileText className="h-4 w-4" />, 
+        active: true 
+      }])
+    } else {
+      handleTabClick(node.id)
+    }
+  }
+
+  const createFile = (name: string, content: string = '', parentId?: string) => {
+    const newNode: FileNode = { id: name, name, type: 'file', content }
+    if (!parentId) {
+      setFiles([...files, newNode])
+    } else {
+      const addToParent = (nodes: FileNode[]): FileNode[] => {
+        return nodes.map(node => {
+          if (node.id === parentId) return { ...node, children: [...(node.children || []), newNode], isOpen: true }
+          if (node.children) return { ...node, children: addToParent(node.children) }
+          return node
+        })
+      }
+      setFiles(addToParent(files))
+    }
+    openFile(newNode)
+  }
+
+  const createFolder = (name: string, parentId?: string) => {
+    const newNode: FileNode = { id: name, name, type: 'folder', children: [], isOpen: true }
+    if (!parentId) {
+      setFiles([...files, newNode])
+    } else {
+      const addToParent = (nodes: FileNode[]): FileNode[] => {
+        return nodes.map(node => {
+          if (node.id === parentId) return { ...node, children: [...(node.children || []), newNode], isOpen: true }
+          if (node.children) return { ...node, children: addToParent(node.children) }
+          return node
+        })
+      }
+      setFiles(addToParent(files))
+    }
+  }
+
+  const handleFileAction = (action: string) => {
+    switch(action) {
+      case 'new-file':
+        const name = prompt("Enter file name:")
+        if (name) createFile(name)
+        break
+      case 'new-folder':
+        const folderName = prompt("Enter folder name:")
+        if (folderName) createFolder(folderName)
+        break
+      case 'save':
+        toast({ title: "Project Saved", description: "All changes committed to neural cache." })
+        break
+      default:
+        console.log("Action not implemented", action)
+    }
   }
 
   const renderSidebarView = () => {
     switch(activeSidebarTab) {
       case 'explorer':
-        return <ProjectExplorer searchQuery={searchQuery} />
+        return <ProjectExplorer 
+          searchQuery={searchQuery} 
+          files={files} 
+          setFiles={setFiles} 
+          selectedId={selectedId} 
+          onSelect={(id) => {
+            setSelectedId(id)
+            const findAndOpen = (nodes: FileNode[]) => {
+              nodes.forEach(n => {
+                if (n.id === id && n.type === 'file') openFile(n)
+                if (n.children) findAndOpen(n.children)
+              })
+            }
+            findAndOpen(files)
+          }} 
+        />
       case 'search':
         return <SearchSidebar searchQuery={searchQuery} onSearch={setSearchQuery} />
       case 'git':
@@ -67,23 +178,20 @@ export default function IDEPage() {
       case 'security':
         return <SecuritySidebar />
       default:
-        return <div className="w-[240px] border-r border-border bg-sidebar/50" />
+        return null
     }
   }
 
   const renderMainContent = () => {
     switch(activeSidebarTab) {
-      case 'neocad':
-        return <NeoCADPanel />
-      case 'analytics':
-        return <AnalyticsPanel />
-      case 'quantum':
-        return <QuantumReadyPanel />
+      case 'neocad': return <NeoCADPanel />
+      case 'analytics': return <AnalyticsPanel />
+      case 'quantum': return <QuantumReadyPanel />
       default:
         return (
           <div className="flex-1 flex flex-col overflow-hidden">
             <EditorTabs tabs={tabs} onTabClick={handleTabClick} onTabClose={handleTabClose} />
-            <CodeEditor code={code} language="typescript" onChange={setCode} />
+            <CodeEditor code={activeFile?.content || ''} language="typescript" onChange={handleUpdateCode} />
           </div>
         )
     }
@@ -91,7 +199,7 @@ export default function IDEPage() {
 
   return (
     <main className="h-screen w-screen flex flex-col overflow-hidden bg-background text-foreground">
-      <TopNav onSearch={setSearchQuery} />
+      <TopNav onSearch={setSearchQuery} onAction={handleFileAction} />
       
       <div className="flex-1 flex overflow-hidden">
         <Sidebar activeId={activeSidebarTab} onActiveChange={setActiveSidebarTab} />
@@ -104,26 +212,31 @@ export default function IDEPage() {
         </div>
       </div>
 
-      <AIAssistant />
+      <AIAssistant 
+        currentFile={activeFile?.id}
+        currentCode={activeFile?.content}
+        fileList={files.map(f => f.name)}
+        onAction={(action) => {
+           if (action.type === 'createFile' && action.path) createFile(action.path, action.content)
+           if (action.type === 'createFolder' && action.path) createFolder(action.path)
+           if (action.type === 'updateCode' && action.content) handleUpdateCode(action.content)
+        }}
+      />
 
-      {/* Footer Status Bar */}
       <footer className="h-6 bg-primary text-primary-foreground flex items-center px-4 justify-between text-[10px] font-bold tracking-wider uppercase select-none z-50">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
              <div className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse" />
              QUANTUM-READY
           </div>
-          <span>LN 1, COL 1</span>
           <span>UTF-8</span>
         </div>
         <div className="flex items-center gap-4">
-          <span>POLYGLOT ENGINE: TYPESCRIPT 5.2</span>
+          <span>POLYGLOT ENGINE: STABLE</span>
           <span className="opacity-70">NEURAL-LINK ACTIVE</span>
-          <div className="flex items-center gap-1 bg-primary-foreground text-primary px-2 py-0.5 rounded-sm">
-             OS INTEGRATION: STABLE
-          </div>
         </div>
       </footer>
+      <Toaster />
     </main>
   )
 }
