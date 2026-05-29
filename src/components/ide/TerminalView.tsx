@@ -14,9 +14,9 @@ const tabs = [
 export function TerminalView() {
   const [activeTab, setActiveTab] = useState('terminal')
   const [logs, setLogs] = useState([
-    { type: 'info', text: 'Gangeriya Code Engine v4.2.0 initialized...' },
+    { type: 'info', text: 'NEOCADE Code Engine v1.0.0 initialized...' },
     { type: 'success', text: 'Universal Polyglot Runtime started successfully.' },
-    { type: 'warning', text: 'Optimizing memory usage: RAM 32GB detected, applying Neural-Cache.' },
+    { type: 'warning', text: 'Optimizing memory usage: RAM detected, applying Neural-Cache.' },
     { type: 'info', text: 'listening on port 9002' }
   ])
 
@@ -63,7 +63,7 @@ export function TerminalView() {
           </div>
         ))}
         <div className="flex items-center">
-          <span className="text-primary mr-2">Gangeriya@Quantum:~$</span>
+          <span className="text-primary mr-2">NEOCADE@Quantum:~$</span>
           <input className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-foreground" autoFocus />
         </div>
       </div>

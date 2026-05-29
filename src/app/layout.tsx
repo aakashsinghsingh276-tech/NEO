@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Gangeriya Code | Quantum AI IDE',
+  title: 'NEOCADE | Quantum AI IDE',
   description: 'The world\'s most advanced AI-powered polyglot IDE and developer platform.',
 };
 

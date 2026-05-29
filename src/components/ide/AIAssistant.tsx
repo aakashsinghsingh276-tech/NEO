@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 export function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([
-    { role: 'assistant', content: "Systems online. Holographic interface active. How can I assist your development today, Gangeriya?" }
+    { role: 'assistant', content: "Systems online. Holographic interface active. How can I assist your development today, user?" }
   ])
   const [input, setInput] = useState("")
 
@@ -21,7 +21,7 @@ export function AIAssistant() {
     setTimeout(() => {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: "Processing request via Gangeriya AI Core. Optimization algorithms engaged." 
+        content: "Processing request via NEOCADE AI Core. Optimization algorithms engaged." 
       }])
     }, 1000)
   }
@@ -57,7 +57,7 @@ export function AIAssistant() {
         <div className="p-4 border-b border-white/10 flex items-center justify-between bg-primary/5">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            <h3 className="font-headline text-primary font-bold tracking-wider">GANGERIYA CORE</h3>
+            <h3 className="font-headline text-primary font-bold tracking-wider">NEOCADE CORE</h3>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="hover:text-primary">
             <X className="h-4 w-4" />

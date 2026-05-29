@@ -18,11 +18,11 @@ const initialTabs = [
 ]
 
 const initialCode = `/**
- * Gangeriya Code v1.0.0
+ * NEOCADE v1.0.0
  * Quantum AI Platform
  */
 
-import { QuantumCore } from '@gangeriya/core';
+import { QuantumCore } from '@neocade/core';
 
 async function main() {
   const ai = new QuantumCore();
@@ -43,6 +43,7 @@ export default function IDEPage() {
   const [activeSidebarTab, setActiveSidebarTab] = useState('explorer')
   const [tabs, setTabs] = useState(initialTabs)
   const [code, setCode] = useState(initialCode)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const handleTabClick = (id: string) => {
     setTabs(tabs.map(t => ({ ...t, active: t.id === id })))
@@ -72,12 +73,12 @@ export default function IDEPage() {
 
   return (
     <main className="h-screen w-screen flex flex-col overflow-hidden bg-background text-foreground">
-      <TopNav />
+      <TopNav onSearch={setSearchQuery} />
       
       <div className="flex-1 flex overflow-hidden">
         <Sidebar activeId={activeSidebarTab} onActiveChange={setActiveSidebarTab} />
         
-        {activeSidebarTab === 'explorer' && <ProjectExplorer />}
+        {activeSidebarTab === 'explorer' && <ProjectExplorer searchQuery={searchQuery} />}
         
         <div className="flex-1 flex flex-col relative overflow-hidden">
           {renderContent()}
