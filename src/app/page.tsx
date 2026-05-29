@@ -80,7 +80,7 @@ export default function IDEPage() {
         
         {activeSidebarTab === 'explorer' && <ProjectExplorer searchQuery={searchQuery} />}
         
-        <div className="flex-1 flex flex-col relative overflow-hidden">
+        <div className="flex-1 flex flex-col relative overflow-hidden border-l border-border/50">
           {renderContent()}
           <TerminalView />
         </div>
@@ -89,10 +89,10 @@ export default function IDEPage() {
       <AIAssistant />
 
       {/* Footer Status Bar */}
-      <footer className="h-6 bg-primary text-black flex items-center px-4 justify-between text-[10px] font-bold tracking-wider uppercase select-none z-50">
+      <footer className="h-6 bg-primary text-primary-foreground flex items-center px-4 justify-between text-[10px] font-bold tracking-wider uppercase select-none z-50">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
-             <div className="h-2 w-2 rounded-full bg-black animate-pulse" />
+             <div className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse" />
              QUANTUM-READY
           </div>
           <span>LN 1, COL 1</span>
@@ -100,8 +100,8 @@ export default function IDEPage() {
         </div>
         <div className="flex items-center gap-4">
           <span>POLYGLOT ENGINE: TYPESCRIPT 5.2</span>
-          <span>NEURAL-LINK ACTIVE</span>
-          <div className="flex items-center gap-1 bg-black text-primary px-2 py-0.5 rounded-sm">
+          <span className="opacity-70">NEURAL-LINK ACTIVE</span>
+          <div className="flex items-center gap-1 bg-primary-foreground text-primary px-2 py-0.5 rounded-sm">
              OS INTEGRATION: STABLE
           </div>
         </div>

@@ -16,7 +16,7 @@ const analyticsData = [
 
 export function NeoCADPanel() {
   return (
-    <div className="flex-1 p-8 bg-black/40 flex flex-col">
+    <div className="flex-1 p-8 bg-black/20 flex flex-col">
       <div className="flex items-center gap-3 mb-6">
         <Cuboid className="h-8 w-8 text-primary" />
         <div>
@@ -30,11 +30,11 @@ export function NeoCADPanel() {
           <div className="h-32 w-32 border-4 border-primary/30 rounded-lg flex items-center justify-center mb-4 animate-spin-slow">
             <Cuboid className="h-16 w-16 text-primary animate-pulse" />
           </div>
-          <p className="text-primary font-code animate-pulse">Initializing OpenGL Context...</p>
+          <p className="text-primary font-code animate-pulse uppercase text-xs tracking-widest">Initializing OpenGL Context...</p>
         </div>
         <div className="absolute bottom-4 right-4 flex gap-2">
-           <button className="px-3 py-1 bg-primary/20 border border-primary/40 rounded text-[10px] text-primary">WIREFRAME</button>
-           <button className="px-3 py-1 bg-primary/20 border border-primary/40 rounded text-[10px] text-primary">GPU STATS</button>
+           <button className="px-3 py-1 bg-primary/10 border border-primary/30 rounded text-[10px] text-primary hover:bg-primary/20 transition-colors">WIREFRAME</button>
+           <button className="px-3 py-1 bg-primary/10 border border-primary/30 rounded text-[10px] text-primary hover:bg-primary/20 transition-colors">GPU STATS</button>
         </div>
       </Card>
     </div>
@@ -43,7 +43,7 @@ export function NeoCADPanel() {
 
 export function AnalyticsPanel() {
   return (
-    <div className="flex-1 p-8 bg-black/40 flex flex-col">
+    <div className="flex-1 p-8 bg-black/20 flex flex-col">
       <div className="flex items-center gap-3 mb-6">
         <Activity className="h-8 w-8 text-primary" />
         <div>
@@ -54,7 +54,7 @@ export function AnalyticsPanel() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {[
           { label: 'Code Quality', val: '98%', icon: BrainCircuit, color: 'text-primary' },
-          { label: 'Complexity', val: 'Low', icon: Sparkles, color: 'text-blue-400' },
+          { label: 'Complexity', val: 'Low', icon: Sparkles, color: 'text-accent' },
           { label: 'Security Score', val: 'A+', icon: ShieldAlert, color: 'text-primary' }
         ].map((stat, i) => (
           <Card key={i} className="glass-panel p-6 border-white/5 flex items-center gap-4">
@@ -69,18 +69,18 @@ export function AnalyticsPanel() {
         ))}
       </div>
       <Card className="flex-1 glass-panel p-6 border-white/5">
-        <h3 className="text-sm font-bold text-primary mb-6">DEVELOPER THROUGHPUT (NEURAL-LINK)</h3>
+        <h3 className="text-sm font-bold text-primary mb-6 uppercase tracking-widest">Developer Throughput (Neural-Link)</h3>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={analyticsData}>
               <Bar dataKey="val">
                 {analyticsData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={index === 4 ? 'hsl(82, 100%, 50%)' : 'rgba(255, 255, 255, 0.1)'} />
+                  <Cell key={`cell-${index}`} fill={index === 4 ? 'hsl(195, 100%, 50%)' : 'rgba(255, 255, 255, 0.05)'} />
                 ))}
               </Bar>
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255, 255, 255, 0.3)', fontSize: 10 }} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255, 255, 255, 0.2)', fontSize: 10 }} />
               <YAxis hide />
-              <Tooltip cursor={{ fill: 'rgba(165, 255, 0, 0.05)' }} contentStyle={{ backgroundColor: '#050505', border: '1px solid rgba(165, 255, 0, 0.2)', borderRadius: '8px' }} />
+              <Tooltip cursor={{ fill: 'rgba(0, 191, 255, 0.05)' }} contentStyle={{ backgroundColor: '#0D1117', border: '1px solid rgba(0, 191, 255, 0.2)', borderRadius: '8px' }} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -91,25 +91,25 @@ export function AnalyticsPanel() {
 
 export function QuantumReadyPanel() {
   return (
-    <div className="flex-1 p-8 bg-black/40 flex flex-col items-center justify-center text-center">
+    <div className="flex-1 p-8 bg-black/20 flex flex-col items-center justify-center text-center">
       <div className="relative mb-12">
         <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full animate-pulse" />
         <Zap className="h-24 w-24 text-primary relative z-10 animate-bounce" />
       </div>
-      <h2 className="text-4xl font-headline font-bold text-primary mb-4 tracking-tighter">QUANTUM COMPUTE ACTIVE</h2>
+      <h2 className="text-4xl font-headline font-bold text-primary mb-4 tracking-tighter uppercase">Quantum Compute Active</h2>
       <p className="text-muted-foreground max-w-md mx-auto mb-8">
         Simulation environment primed for Qubits processing and edge AI robotics synchronization.
       </p>
       <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
-        <Card className="glass-panel p-6 border-primary/30 text-left">
-           <Cpu className="h-8 w-8 text-primary mb-3" />
-           <h4 className="font-bold text-primary">SQUINT SIMULATOR</h4>
-           <p className="text-xs text-muted-foreground">Quantum Simulation Engine</p>
+        <Card className="glass-panel p-6 border-primary/20 text-left hover:border-primary/40 transition-colors cursor-pointer group">
+           <Cpu className="h-8 w-8 text-primary mb-3 group-hover:scale-110 transition-transform" />
+           <h4 className="font-bold text-primary uppercase text-xs">Squint Simulator</h4>
+           <p className="text-[10px] text-muted-foreground">Quantum Simulation Engine</p>
         </Card>
-        <Card className="glass-panel p-6 border-primary/30 text-left">
-           <Zap className="h-8 w-8 text-primary mb-3" />
-           <h4 className="font-bold text-primary">QUBIT SCHEDULER</h4>
-           <p className="text-xs text-muted-foreground">Quantum Scheduling Algorithm</p>
+        <Card className="glass-panel p-6 border-accent/20 text-left hover:border-accent/40 transition-colors cursor-pointer group">
+           <Zap className="h-8 w-8 text-accent mb-3 group-hover:scale-110 transition-transform" />
+           <h4 className="font-bold text-accent uppercase text-xs">Qubit Scheduler</h4>
+           <p className="text-[10px] text-muted-foreground">Quantum Scheduling Algorithm</p>
         </Card>
       </div>
     </div>
