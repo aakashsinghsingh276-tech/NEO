@@ -5,13 +5,13 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { Sidebar } from "@/components/ide/Sidebar"
 import { TopNav } from "@/components/ide/TopNav"
 import { ProjectExplorer } from "@/components/ide/ProjectExplorer"
-import { SearchSidebar, GitSidebar, DebugSidebar, SecuritySidebar, ExtensionsSidebar } from "@/components/ide/SidebarViews"
+import { SearchSidebar, GitSidebar, DebugSidebar, SecuritySidebar, ExtensionsSidebar, DatabaseSidebar } from "@/components/ide/SidebarViews"
 import { EditorTabs } from "@/components/ide/EditorTabs"
 import { CodeEditor, getLanguageFromFileName } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
-import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw } from "lucide-react"
-import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel } from "@/components/ide/FeaturePanels"
+import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw, Layers, Database, Code2 } from "lucide-react"
+import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel, ProjectWizard } from "@/components/ide/FeaturePanels"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -34,11 +34,11 @@ const initialFiles: FileNode[] = [
     type: 'folder',
     isOpen: true,
     children: [
-      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import React from "react";\n\nexport default function App() {\n  return (\n    <div className="p-8 bg-slate-900 text-white min-h-screen flex items-center justify-center">\n      <h1 className="text-4xl font-bold text-blue-400">Hello NEO CODE!</h1>\n    </div>\n  );\n}' },
-      { id: 'styles.css', name: 'styles.css', type: 'file', content: 'body {\n  background: #0D1117;\n  color: #00BFFF;\n  font-family: "Space Grotesk", sans-serif;\n}' }
+      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import React from "react";\n\nexport default function App() {\n  return (\n    <div className="p-8 bg-slate-900 text-white min-h-screen flex items-center justify-center font-code">\n      <h1 className="text-4xl font-bold text-blue-400">Hello NEO CODE!</h1>\n      <p className="mt-4 text-slate-400">Quantum Intelligence Powered IDE</p>\n    </div>\n  );\n}' },
+      { id: 'styles.css', name: 'styles.css', type: 'file', content: 'body {\n  background: #0D1117;\n  color: #00BFFF;\n  font-family: "Space Grotesk", sans-serif;\n}\n\n.neon-glow {\n  text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);\n}' }
     ]
   },
-  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEO CODE Project\n\nQuantum-ready workspace powered by GenAI.\n\n## Get Started\n1. Open `src/app.tsx`\n2. Click "Run" in the top menu\n3. Ask AI for help!' }
+  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEO CODE Project\n\nQuantum-ready workspace powered by GenAI.\n\n## Features\n- Polyglot Runtime\n- AI Architect Core\n- Integrated Terminal\n- Git Source Control' }
 ]
 
 export default function IDEPage() {
@@ -49,12 +49,14 @@ export default function IDEPage() {
   ])
   const [selectedId, setSelectedId] = useState<string | null>('app.tsx')
   const [searchQuery, setSearchQuery] = useState('')
-  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false)
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(true)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
-  const [installedLanguages, setInstalledLanguages] = useState<string[]>(['js', 'ts'])
+  const [installedLanguages, setInstalledLanguages] = useState<string[]>(['js', 'ts', 'py'])
+  const [activeModel, setActiveModel] = useState('DeepSeek-V3')
   
   // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [createType, setCreateType] = useState<'file' | 'folder'>('file')
   const [newItemName, setNewItemName] = useState('')
 
@@ -113,13 +115,13 @@ export default function IDEPage() {
   }
 
   const createFile = (name: string, content: string = '', parentId?: string) => {
-    const newNodeId = name + '-' + Date.now()
+    const newNodeId = `${name}-${Date.now()}`
     const newNode: FileNode = { id: newNodeId, name, type: 'file', content }
     
     if (parentId) {
       const addToParent = (nodes: FileNode[]): FileNode[] => {
         return nodes.map(node => {
-          if (node.id === parentId) return { ...node, children: [...(node.children || []), newNode], isOpen: true }
+          if (node.id === parentId && node.type === 'folder') return { ...node, children: [...(node.children || []), newNode], isOpen: true }
           if (node.children) return { ...node, children: addToParent(node.children) }
           return node
         })
@@ -132,13 +134,13 @@ export default function IDEPage() {
   }
 
   const createFolder = (name: string, parentId?: string) => {
-    const newNodeId = name + '-' + Date.now()
+    const newNodeId = `${name}-${Date.now()}`
     const newNode: FileNode = { id: newNodeId, name, type: 'folder', children: [], isOpen: true }
     
     if (parentId) {
       const addToParent = (nodes: FileNode[]): FileNode[] => {
         return nodes.map(node => {
-          if (node.id === parentId) return { ...node, children: [...(node.children || []), newNode], isOpen: true }
+          if (node.id === parentId && node.type === 'folder') return { ...node, children: [...(node.children || []), newNode], isOpen: true }
           if (node.children) return { ...node, children: addToParent(node.children) }
           return node
         })
@@ -160,7 +162,7 @@ export default function IDEPage() {
     }
     setFiles(removeFromTree(files))
     handleTabClose(id)
-    toast({ title: "Deleted", description: "Resource removed from neural-link.", variant: "destructive" })
+    toast({ title: "Resource Terminated", description: "Memory segments cleared successfully.", variant: "destructive" })
   }
 
   const handleSaveToSystem = () => {
@@ -174,15 +176,15 @@ export default function IDEPage() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-    toast({ title: "Saved to Computer", description: `${activeFile.name} downloaded successfully.` })
+    toast({ title: "Local Save Successful", description: `File ${activeFile.name} mirrored to local storage.` })
   }
 
   const handleInstallLanguage = (id: string) => {
-    toast({ title: "Installation Started", description: `Fetching runtime for ${id}...` })
+    toast({ title: "Fetching Runtime", description: `Synchronizing SDK for ${id.toUpperCase()}...` })
     setTimeout(() => {
       setInstalledLanguages(prev => [...prev, id])
-      toast({ title: "Language Installed", description: `${id.toUpperCase()} is now active in NEO CODE.` })
-    }, 2000)
+      toast({ title: "Runtime Active", description: `${id.toUpperCase()} SDK is now online.` })
+    }, 2500)
   }
 
   const handleFileAction = (action: string) => {
@@ -195,16 +197,19 @@ export default function IDEPage() {
         setCreateType('folder')
         setIsCreateModalOpen(true)
         break
+      case 'new-project':
+        setIsWizardOpen(true)
+        break
       case 'save-as':
         handleSaveToSystem()
         break
       case 'start-debug':
       case 'run-without-debug':
         setIsPreviewOpen(true)
-        toast({ title: "Launching App", description: "Compiling and serving project...", duration: 2000 })
+        toast({ title: "Quantum Compilation", description: "Spinning up sandbox environment...", duration: 2000 })
         break
       case 'save':
-        toast({ title: "Project Saved", description: "All changes committed to neural cache." })
+        toast({ title: "Cloud Sync Complete", description: "Delta changes uploaded to neural nodes." })
         break
       case 'ai-assistant':
         setIsAiPanelOpen(!isAiPanelOpen)
@@ -226,6 +231,21 @@ export default function IDEPage() {
     }
     setNewItemName('')
     setIsCreateModalOpen(false)
+  }
+
+  const handleWizardComplete = (template: any) => {
+    toast({ title: "Project Initialized", description: `Creating ${template.name} workspace...` })
+    setFiles([...files, {
+      id: `proj-${Date.now()}`,
+      name: template.name.toLowerCase().replace(' ', '-'),
+      type: 'folder',
+      isOpen: true,
+      children: [
+        { id: `README-${Date.now()}`, name: 'README.md', type: 'file', content: `# ${template.name}\n\nGenerated by NEO CODE Wizard.` },
+        { id: `main-${Date.now()}`, name: 'main.js', type: 'file', content: '// Start coding here...' }
+      ]
+    }])
+    setIsWizardOpen(false)
   }
 
   const renderSidebarView = () => {
@@ -256,6 +276,8 @@ export default function IDEPage() {
         return <DebugSidebar />
       case 'security':
         return <SecuritySidebar />
+      case 'database':
+        return <DatabaseSidebar />
       case 'extensions':
         return <ExtensionsSidebar installed={installedLanguages} onInstall={handleInstallLanguage} />
       default:
@@ -289,7 +311,7 @@ export default function IDEPage() {
   }, [activeFile])
 
   return (
-    <main className="h-screen w-screen flex flex-col overflow-hidden bg-background text-foreground">
+    <main className="h-screen w-screen flex flex-col overflow-hidden bg-background text-foreground selection:bg-primary/30">
       <TopNav onSearch={setSearchQuery} onAction={handleFileAction} />
       
       <div className="flex-1 flex overflow-hidden">
@@ -301,7 +323,7 @@ export default function IDEPage() {
           <div className="flex-1 flex overflow-hidden">
             {renderMainContent()}
             
-            <div className={`transition-all duration-300 border-l border-border/50 ${isAiPanelOpen ? 'w-[400px]' : 'w-0 overflow-hidden'}`}>
+            <div className={`transition-all duration-300 border-l border-border/50 bg-sidebar/30 ${isAiPanelOpen ? 'w-[380px]' : 'w-0 overflow-hidden'}`}>
                <AIAssistant 
                 currentFile={activeFile?.id}
                 currentCode={activeFile?.content}
@@ -320,26 +342,29 @@ export default function IDEPage() {
         </div>
       </div>
 
+      <ProjectWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} onComplete={handleWizardComplete} />
+
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="glass-panel border-primary/20 sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-primary font-bold uppercase tracking-widest text-sm">
-              New {createType === 'file' ? 'File' : 'Folder'}
+            <DialogTitle className="text-primary font-bold uppercase tracking-widest text-xs flex items-center gap-2">
+              {createType === 'file' ? <Code2 className="h-4 w-4" /> : <Layers className="h-4 w-4" />}
+              Initialize New {createType}
             </DialogTitle>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-6">
             <Input 
               autoFocus
-              placeholder={`Enter ${createType} name...`}
+              placeholder={`Enter ${createType} descriptor...`}
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && confirmCreate()}
-              className="bg-black/40 border-white/10"
+              className="bg-black/40 border-white/10 font-code"
             />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)}>CANCEL</Button>
-            <Button onClick={confirmCreate} className="bg-primary text-black font-bold">CREATE</Button>
+            <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} className="text-[10px] uppercase font-bold">ABORT</Button>
+            <Button onClick={confirmCreate} className="bg-primary text-black font-bold text-[10px] uppercase">EXECUTE</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -368,23 +393,25 @@ export default function IDEPage() {
                </Button>
             </div>
           </div>
-          <div className="flex-1 bg-slate-900 flex items-center justify-center p-12 overflow-auto">
-             <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl min-h-[500px] p-12 flex flex-col items-center justify-center text-center">
-                <div className="h-20 w-20 bg-primary/20 rounded-full flex items-center justify-center mb-6">
-                  <Play className="h-10 w-10 text-primary" />
+          <div className="flex-1 bg-slate-900 flex items-center justify-center p-12 overflow-auto relative">
+             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,191,255,0.05)_0%,transparent_70%)]" />
+             <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl min-h-[500px] p-12 flex flex-col items-center justify-center text-center relative z-10">
+                <div className="h-24 w-24 bg-primary/20 rounded-full flex items-center justify-center mb-8 border border-primary/30">
+                  <Play className="h-12 w-12 text-primary fill-primary" />
                 </div>
-                <h2 className="text-3xl font-bold text-slate-800 mb-4">NEO CODE Live Preview</h2>
+                <h2 className="text-4xl font-bold text-slate-800 mb-4 font-headline">NEO CODE Sandbox</h2>
                 <p className="text-slate-500 max-w-md mb-8">
-                  Your application is running in the quantum sandbox. All changes in `{activeFile?.name || 'app.tsx'}` are hot-reloaded instantly.
+                  Virtual environment running `{activeFile?.name || 'app.tsx'}`. 
+                  All neural computations are being hot-reloaded in real-time.
                 </p>
-                <div className="grid grid-cols-2 gap-4 w-full">
-                   <div className="p-6 border border-slate-100 rounded-xl text-left bg-slate-50">
-                      <p className="text-[10px] font-bold text-primary uppercase mb-1">Active Route</p>
-                      <p className="text-sm font-code text-slate-700 font-bold">/{activeFile?.name || 'index.html'}</p>
+                <div className="grid grid-cols-2 gap-6 w-full max-w-2xl">
+                   <div className="p-8 border border-slate-100 rounded-2xl text-left bg-slate-50 hover:border-primary/20 transition-all cursor-pointer">
+                      <p className="text-[10px] font-bold text-primary uppercase mb-2 tracking-widest">Active Route</p>
+                      <p className="text-lg font-code text-slate-700 font-bold">/{activeFile?.name || 'index.html'}</p>
                    </div>
-                   <div className="p-6 border border-slate-100 rounded-xl text-left bg-slate-50">
-                      <p className="text-[10px] font-bold text-accent uppercase mb-1">Server Status</p>
-                      <p className="text-sm font-code text-slate-700 font-bold">200 OK - 0ms Latency</p>
+                   <div className="p-8 border border-slate-100 rounded-2xl text-left bg-slate-50 hover:border-primary/20 transition-all cursor-pointer">
+                      <p className="text-[10px] font-bold text-accent uppercase mb-2 tracking-widest">Server Status</p>
+                      <p className="text-lg font-code text-slate-700 font-bold">200 OK - 2ms Latency</p>
                    </div>
                 </div>
              </div>
@@ -392,32 +419,29 @@ export default function IDEPage() {
         </div>
       )}
 
-      <AIAssistant 
-        currentFile={activeFile?.id}
-        currentCode={activeFile?.content}
-        fileList={files.map(f => f.name)}
-        onAction={(action) => {
-           if (action.type === 'createFile' && action.path) createFile(action.path, action.content)
-           if (action.type === 'createFolder' && action.path) createFolder(action.path)
-           if (action.type === 'updateCode' && action.content) handleUpdateCode(action.content)
-        }}
-      />
-
-      <footer className="h-6 bg-primary text-primary-foreground flex items-center px-4 justify-between text-[10px] font-bold tracking-wider uppercase select-none z-50">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
+      <footer className="h-7 bg-primary text-primary-foreground flex items-center px-4 justify-between text-[10px] font-bold tracking-wider uppercase select-none z-50">
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5">
              <div className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse" />
-             QUANTUM-READY
+             SYSTEM: OPTIMIZED
           </div>
-          <span>UTF-8</span>
-          <span>Line 1, Col 1</span>
+          <div className="flex items-center gap-1.5 opacity-80">
+            <Layers className="h-3 w-3" /> MAIN BRANCH
+          </div>
+          <span className="opacity-60">UTF-8</span>
+          <span className="opacity-60">L1, C1</span>
         </div>
-        <div className="flex items-center gap-4">
-          <span>POLYGLOT ENGINE: STABLE</span>
-          <span className="opacity-70">NEURAL-LINK ACTIVE</span>
-          <span className="flex items-center gap-1">
-            <FileCode className="h-3 w-3" /> {detectedLanguage}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm">
+             <Code2 className="h-3 w-3" />
+             MODEL: {activeModel}
+          </div>
+          <span className="flex items-center gap-1.5">
+            <FileCode className="h-3.5 w-3.5" /> {detectedLanguage}
           </span>
+          <div className="flex items-center gap-1 text-[9px]">
+            NEURAL-LINK: <span className="text-green-900">ENCRYPTED</span>
+          </div>
         </div>
       </footer>
       <Toaster />

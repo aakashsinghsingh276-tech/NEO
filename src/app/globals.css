@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -50,16 +51,17 @@
       radial-gradient(circle at 50% 50%, rgba(0, 191, 255, 0.04) 0%, transparent 50%),
       linear-gradient(rgba(0, 191, 255, 0.02) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0, 191, 255, 0.02) 1px, transparent 1px);
-    background-size: 100% 100%, 40px 40px, 40px 40px;
+    background-size: 100% 100%, 60px 60px, 60px 60px;
+    cursor: crosshair;
   }
 }
 
 .glass-panel {
-  @apply bg-card/60 backdrop-blur-md border border-white/5 shadow-2xl;
+  @apply bg-card/70 backdrop-blur-xl border border-white/10 shadow-2xl;
 }
 
 .neon-glow {
-  box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 191, 255, 0.4);
 }
 
 .font-code {
@@ -71,16 +73,16 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  @apply bg-black/20;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-primary/20 rounded-full hover:bg-primary/40 transition-colors;
+  @apply bg-primary/10 rounded-full hover:bg-primary/30 transition-all border-2 border-transparent bg-clip-padding;
 }
 
 @keyframes spin-slow {
@@ -94,9 +96,18 @@
 }
 
 .animate-spin-slow {
-  animation: spin-slow 12s linear infinite;
+  animation: spin-slow 15s linear infinite;
 }
 
 .animate-reverse-spin-slow {
-  animation: reverse-spin-slow 8s linear infinite;
+  animation: reverse-spin-slow 10s linear infinite;
+}
+
+/* Tab Overrides */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

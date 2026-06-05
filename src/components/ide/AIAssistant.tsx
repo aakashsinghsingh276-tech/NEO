@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useState } from "react"
-import { Mic, Send, Bot, Sparkles, X, Cpu, Loader2, Maximize2, Minimize2 } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { Mic, Send, Bot, Sparkles, X, Cpu, Loader2, Maximize2, Minimize2, Code2, Bug, Zap, Wand2, Shield, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -20,9 +20,16 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEm
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([
-    { role: 'assistant', content: "Quantum Intelligence online. I can generate projects, refactor code, and analyze neural pathways. How can I assist your mission, architect?" }
+    { role: 'assistant', content: "Quantum Intelligence online. I am optimized for multi-language orchestration and neural code generation. Command me, Architect." }
   ])
   const [input, setInput] = useState("")
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages, loading])
 
   const handleSend = async (overridePrompt?: string) => {
     const prompt = overridePrompt || input
@@ -46,7 +53,7 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEm
         })
       }
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Critical link failure. AI Core unreachable." }])
+      setMessages(prev => [...prev, { role: 'assistant', content: "Critical link failure. AI Neural Core is currently unreachable. Re-syncing..." }])
     } finally {
       setLoading(false)
     }
@@ -54,46 +61,81 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEm
 
   const content = (
     <>
-      <div className="p-4 border-b border-white/10 flex items-center justify-between bg-primary/5">
-        <div className="flex items-center gap-2">
-          <Bot className="h-4 w-4 text-primary" />
-          <h3 className="font-headline text-primary font-bold tracking-wider text-xs uppercase">NEO CODE AI CORE</h3>
+      <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+             <div className="absolute inset-0 bg-primary/20 blur-md rounded-full animate-pulse" />
+             <Bot className="h-5 w-5 text-primary relative z-10" />
+          </div>
+          <div>
+            <h3 className="font-headline text-primary font-bold tracking-widest text-[10px] uppercase">NEO CODE AI AGENT</h3>
+            <p className="text-[8px] text-muted-foreground tracking-tighter uppercase font-bold">Quantum Core V5.5</p>
+          </div>
         </div>
         {!isEmbedded && (
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="hover:text-primary h-6 w-6">
+          <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="hover:text-primary h-8 w-8 rounded-full">
             <X className="h-4 w-4" />
           </Button>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar bg-black/20">
         {messages.map((msg, i) => (
           <div key={i} className={cn(
-            "flex gap-2 max-w-[90%]",
+            "flex gap-3 max-w-[92%]",
             msg.role === 'user' ? "ml-auto flex-row-reverse" : ""
           )}>
             <div className={cn(
-              "p-3 rounded-xl text-sm leading-relaxed",
+              "p-4 rounded-2xl text-[12px] leading-relaxed font-medium shadow-sm transition-all",
               msg.role === 'user' 
-                ? "bg-primary text-black font-semibold shadow-[0_0_15px_rgba(0,191,255,0.3)]" 
-                : "bg-white/5 border border-white/10 text-foreground"
+                ? "bg-primary text-black font-bold shadow-[0_0_20px_rgba(0,191,255,0.25)] border-none" 
+                : "bg-white/5 border border-white/10 text-foreground/90 backdrop-blur-sm"
             )}>
               {msg.content}
             </div>
           </div>
         ))}
         {loading && (
-          <div className="flex items-center gap-2 text-primary/50 text-xs italic">
-            <Loader2 className="h-3 w-3 animate-spin" /> SYNCHRONIZING NEURAL-LINK...
+          <div className="flex items-center gap-3 text-primary/60 text-[10px] font-bold tracking-widest bg-primary/5 p-3 rounded-lg animate-pulse border border-primary/10">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> SYNCHRONIZING NEURAL-LINK...
           </div>
         )}
       </div>
 
-      <div className="p-4 border-t border-white/10 bg-black/40">
-        <div className="relative">
+      <div className="p-4 border-t border-white/10 bg-black/60">
+        <div className="flex gap-2 mb-4 flex-wrap justify-center">
+           <Button 
+             variant="outline" 
+             size="sm" 
+             disabled={loading}
+             onClick={() => handleSend("Analyze current code for security vulnerabilities and logic flaws.")}
+             className="text-[9px] h-7 border-primary/20 text-muted-foreground hover:text-primary gap-1.5 uppercase font-bold bg-black/40"
+           >
+             <Shield className="h-3 w-3 text-primary" /> AUDIT CODE
+           </Button>
+           <Button 
+             variant="outline" 
+             size="sm" 
+             disabled={loading}
+             onClick={() => handleSend("Refactor the active file for better performance and readability.")}
+             className="text-[9px] h-7 border-accent/20 text-muted-foreground hover:text-accent gap-1.5 uppercase font-bold bg-black/40"
+           >
+             <Zap className="h-3 w-3 text-accent" /> REFACTOR
+           </Button>
+           <Button 
+             variant="outline" 
+             size="sm" 
+             disabled={loading}
+             onClick={() => handleSend("Explain exactly what this code does in architectural terms.")}
+             className="text-[9px] h-7 border-white/10 text-muted-foreground hover:text-white gap-1.5 uppercase font-bold bg-black/40"
+           >
+             <Info className="h-3 w-3" /> EXPLAIN
+           </Button>
+        </div>
+        <div className="relative group">
           <textarea 
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm pr-12 focus:outline-none focus:border-primary/50 transition-colors resize-none custom-scrollbar"
-            placeholder="Command the AI Assistant..."
+            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-[13px] pr-14 focus:outline-none focus:border-primary/50 transition-all resize-none custom-scrollbar font-code text-foreground group-hover:bg-black/60"
+            placeholder="Command the AI Core..."
             rows={2}
             value={input}
             disabled={loading}
@@ -110,30 +152,15 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEm
             variant="ghost" 
             onClick={() => handleSend()} 
             disabled={loading}
-            className="absolute right-2 bottom-2 h-8 w-8 text-primary hover:bg-primary/20"
+            className="absolute right-3 bottom-3 h-10 w-10 text-primary hover:bg-primary/20 rounded-xl transition-all"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2 mt-3 justify-center">
-           <Button 
-             variant="outline" 
-             size="sm" 
-             disabled={loading}
-             onClick={() => handleSend("Generate a professional landing page component with Tailwind")}
-             className="text-[9px] h-7 border-primary/20 text-muted-foreground hover:text-primary gap-1 uppercase tracking-tighter"
-           >
-             <Sparkles className="h-3 w-3" /> GENERATE UI
-           </Button>
-           <Button 
-             variant="outline" 
-             size="sm" 
-             disabled={loading}
-             onClick={() => handleSend("Review this code for performance bottlenecks and security flaws")}
-             className="text-[9px] h-7 border-primary/20 text-muted-foreground hover:text-primary gap-1 uppercase tracking-tighter"
-           >
-             <Bot className="h-3 w-3" /> CODE REVIEW
-           </Button>
+        <div className="mt-3 text-center">
+           <p className="text-[8px] text-muted-foreground uppercase tracking-widest flex items-center justify-center gap-1.5 opacity-60">
+             <Wand2 className="h-2.5 w-2.5" /> AI AGENT READY TO BUILD
+           </p>
         </div>
       </div>
     </>
@@ -141,7 +168,7 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEm
 
   if (isEmbedded) {
     return (
-      <div className="h-full flex flex-col bg-black/40 backdrop-blur-sm">
+      <div className="h-full flex flex-col bg-black/40 backdrop-blur-md">
         {content}
       </div>
     )
@@ -152,22 +179,22 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEm
       <div 
         onClick={() => setIsOpen(true)}
         className={cn(
-          "fixed bottom-10 right-10 z-50 transition-all duration-500 cursor-pointer group",
+          "fixed bottom-12 right-12 z-50 transition-all duration-700 cursor-pointer group",
           isOpen ? "scale-0 rotate-180" : "scale-100 rotate-0"
         )}
       >
-        <div className="relative h-14 w-14">
-          <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-glow-pulse" />
-          <div className="absolute inset-0 rounded-full border-2 border-primary/50 animate-spin-slow" />
-          <div className="absolute inset-0 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-            <Cpu className="h-7 w-7" />
+        <div className="relative h-16 w-16">
+          <div className="absolute inset-0 rounded-full bg-primary/25 blur-2xl animate-glow-pulse" />
+          <div className="absolute inset-0 rounded-full border-2 border-primary/40 animate-spin-slow" />
+          <div className="absolute inset-0 flex items-center justify-center text-primary group-hover:scale-125 transition-transform">
+            <Cpu className="h-8 w-8 drop-shadow-[0_0_10px_rgba(0,191,255,0.6)]" />
           </div>
         </div>
       </div>
 
       <Card className={cn(
-        "fixed bottom-10 right-10 z-50 w-[400px] h-[600px] glass-panel border-primary/20 flex flex-col transition-all duration-500 origin-bottom-right shadow-[0_0_50px_rgba(0,191,255,0.1)]",
-        isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-20 pointer-events-none"
+        "fixed bottom-12 right-12 z-50 w-[420px] h-[680px] glass-panel border-primary/25 flex flex-col transition-all duration-700 origin-bottom-right shadow-[0_0_80px_rgba(0,191,255,0.15)] overflow-hidden",
+        isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-40 pointer-events-none"
       )}>
         {content}
       </Card>
