@@ -32,7 +32,7 @@ const LANGUAGE_RUN_COMMANDS: Record<string, string> = {
   cs: 'dotnet run',
 }
 
-export function TerminalView({ activeFile }: { activeFile?: string }) {
+export function TerminalView({ activeFile, height = 320 }: { activeFile?: string, height?: number }) {
   const [terminals, setTerminals] = useState<TerminalInstance[]>([
     { 
       id: 'term-node', 
@@ -124,8 +124,11 @@ export function TerminalView({ activeFile }: { activeFile?: string }) {
   }
 
   return (
-    <div className="h-[320px] border-t border-border bg-[#0a0d12] flex flex-col font-code">
-      <div className="flex items-center px-4 bg-sidebar/40 border-b border-border h-10 justify-between">
+    <div 
+      className="border-t border-border bg-[#0a0d12] flex flex-col font-code"
+      style={{ height: `${height}px` }}
+    >
+      <div className="flex items-center px-4 bg-sidebar/40 border-b border-border h-10 justify-between shrink-0">
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1 h-full">
           {terminals.map((t) => (
             <div

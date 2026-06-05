@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Mic, Send, Bot, Sparkles, X, Cpu, Loader2, Maximize2, Minimize2, Code2, Bug, Zap, Wand2, Shield, Info } from "lucide-react"
+import { Send, Bot, X, Cpu, Loader2, Shield, Info, Zap, Wand2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -19,6 +19,7 @@ interface AIAssistantProps {
 export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEmbedded }: AIAssistantProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([
     { role: 'assistant', content: "Quantum Intelligence online. I am optimized for multi-language orchestration and neural code generation. Command me, Architect." }
   ])
@@ -35,6 +36,7 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEm
     const prompt = overridePrompt || input
     if (!prompt.trim()) return
     
+    setError(null)
     setMessages(prev => [...prev, { role: 'user', content: prompt }])
     if (!overridePrompt) setInput("")
     setLoading(true)
@@ -52,8 +54,10 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEm
           onAction(action)
         })
       }
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Critical link failure. AI Neural Core is currently unreachable. Re-syncing..." }])
+    } catch (err: any) {
+      const errorMessage = "Neural link synchronization failed. Please check your network connection or API configuration."
+      setError(errorMessage)
+      setMessages(prev => [...prev, { role: 'assistant', content: errorMessage }])
     } finally {
       setLoading(false)
     }
@@ -98,6 +102,16 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction, isEm
         {loading && (
           <div className="flex items-center gap-3 text-primary/60 text-[10px] font-bold tracking-widest bg-primary/5 p-3 rounded-lg animate-pulse border border-primary/10">
             <Loader2 className="h-3.5 w-3.5 animate-spin" /> SYNCHRONIZING NEURAL-LINK...
+          </div>
+        )}
+        {error && (
+          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-[10px] font-bold flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-3.5 w-3.5" /> {error}
+            </div>
+            <Button size="sm" variant="outline" className="h-7 text-[8px] border-destructive/30 hover:bg-destructive/10" onClick={() => handleSend()}>
+              RETRY SYNC
+            </Button>
           </div>
         )}
       </div>

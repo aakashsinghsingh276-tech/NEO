@@ -53,6 +53,8 @@ export default function IDEPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [installedLanguages, setInstalledLanguages] = useState<string[]>(['js', 'ts', 'py'])
   const [activeModel, setActiveModel] = useState('DeepSeek-V3')
+  const [terminalHeight, setTerminalHeight] = useState(300)
+  const [isDraggingTerminal, setIsDraggingTerminal] = useState(false)
   
   // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -248,6 +250,38 @@ export default function IDEPage() {
     setIsWizardOpen(false)
   }
 
+  // Resizing Logic
+  const startDragging = useCallback((e: React.MouseEvent) => {
+    setIsDraggingTerminal(true)
+    e.preventDefault()
+  }, [])
+
+  const stopDragging = useCallback(() => {
+    setIsDraggingTerminal(false)
+  }, [])
+
+  const onDrag = useCallback((e: MouseEvent) => {
+    if (!isDraggingTerminal) return
+    const newHeight = window.innerHeight - e.clientY
+    if (newHeight > 100 && newHeight < window.innerHeight - 200) {
+      setTerminalHeight(newHeight)
+    }
+  }, [isDraggingTerminal])
+
+  useEffect(() => {
+    if (isDraggingTerminal) {
+      window.addEventListener('mousemove', onDrag)
+      window.addEventListener('mouseup', stopDragging)
+    } else {
+      window.removeEventListener('mousemove', onDrag)
+      window.removeEventListener('mouseup', stopDragging)
+    }
+    return () => {
+      window.removeEventListener('mousemove', onDrag)
+      window.removeEventListener('mouseup', stopDragging)
+    }
+  }, [isDraggingTerminal, onDrag, stopDragging])
+
   const renderSidebarView = () => {
     switch(activeSidebarTab) {
       case 'explorer':
@@ -338,7 +372,15 @@ export default function IDEPage() {
             </div>
           </div>
           
-          <TerminalView activeFile={activeFile?.name} />
+          <div 
+            onMouseDown={startDragging}
+            className="h-1 bg-border/20 hover:bg-primary/50 cursor-row-resize transition-colors z-50 relative group"
+          >
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
+               <div className="w-12 h-1 bg-primary rounded-full" />
+            </div>
+          </div>
+          <TerminalView activeFile={activeFile?.name} height={terminalHeight} />
         </div>
       </div>
 
@@ -433,6 +475,10 @@ export default function IDEPage() {
         </div>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm">
+             <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+             NEURAL-LINK: ACTIVE
+          </div>
+          <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm">
              <Code2 className="h-3 w-3" />
              MODEL: {activeModel}
           </div>
@@ -440,7 +486,7 @@ export default function IDEPage() {
             <FileCode className="h-3.5 w-3.5" /> {detectedLanguage}
           </span>
           <div className="flex items-center gap-1 text-[9px]">
-            NEURAL-LINK: <span className="text-green-900">ENCRYPTED</span>
+            LINK: <span className="text-green-900">ENCRYPTED</span>
           </div>
         </div>
       </footer>
