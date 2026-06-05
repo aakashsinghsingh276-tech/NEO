@@ -30,11 +30,11 @@ const initialFiles: FileNode[] = [
     type: 'folder',
     isOpen: true,
     children: [
-      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import { QuantumCore } from "@neocade/core";\n\nconsole.log("NEOCADE INITIALIZED");' },
-      { id: 'styles.css', name: 'styles.css', type: 'file', content: 'body { background: #000; color: #00BFFF; }' }
+      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import { QuantumCore } from "@neocode/core";\n\nconsole.log("NEO CODE INITIALIZED");' },
+      { id: 'styles.css', name: 'styles.css', type: 'file', content: 'body { background: #0D1117; color: #00BFFF; }' }
     ]
   },
-  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEOCADE Project\nQuantum-ready workspace.' }
+  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEO CODE Project\nQuantum-ready workspace.' }
 ]
 
 export default function IDEPage() {

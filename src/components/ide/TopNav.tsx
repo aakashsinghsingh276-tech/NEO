@@ -24,7 +24,7 @@ export function TopNav({ onSearch, onAction }: { onSearch?: (query: string) => v
     <header className="h-10 bg-sidebar border-b border-border flex items-center px-4 gap-6 select-none z-50">
       <div className="flex items-center gap-2">
         <Cpu className="h-4 w-4 text-primary" />
-        <span className="text-[11px] font-bold tracking-[0.2em] text-primary">NEOCADE</span>
+        <span className="text-[11px] font-bold tracking-[0.2em] text-primary">NEO CODE</span>
       </div>
 
       <nav className="hidden md:flex items-center gap-1 text-[11px] font-medium text-muted-foreground">

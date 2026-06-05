@@ -21,7 +21,7 @@ export function TerminalView() {
     { 
       id: 'term-1', 
       name: 'node', 
-      logs: [{ type: 'info', text: 'NEOCADE Code Engine initialized on port 9002' }] 
+      logs: [{ type: 'info', text: 'NEO CODE Code Engine initialized on port 9002' }] 
     }
   ])
   const [activeId, setActiveId] = useState('term-1')
@@ -43,7 +43,7 @@ export function TerminalView() {
   const handleCommand = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && input.trim()) {
       const command = input.trim().toLowerCase()
-      const newLogs = [...activeTerm.logs, { type: 'info', text: `NEOCADE@Quantum:~$ ${input}` }] as any
+      const newLogs = [...activeTerm.logs, { type: 'info', text: `NEOCODE@Quantum:~$ ${input}` }] as any
       
       if (command === 'help') {
         newLogs.push({ type: 'info', text: 'Commands: help, status, clear, run, neofetch' })
@@ -123,7 +123,7 @@ export function TerminalView() {
           </div>
         ))}
         <div className="flex items-center">
-          <span className="text-primary mr-2 whitespace-nowrap">NEOCADE@Quantum:~$</span>
+          <span className="text-primary mr-2 whitespace-nowrap">NEO CODE@Quantum:~$</span>
           <input 
             ref={inputRef}
             className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-foreground" 

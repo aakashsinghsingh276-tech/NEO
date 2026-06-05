@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview The core AI reasoning engine for the NEOCADE IDE.
+ * @fileOverview The core AI reasoning engine for the NEO CODE IDE.
  * 
  * This flow analyzes user requests and can suggest file system changes 
  * (creating files/folders) and write code in various languages.
@@ -40,7 +40,7 @@ const idePrompt = ai.definePrompt({
   name: 'ideAgentPrompt',
   input: { schema: IDEAgentInputSchema },
   output: { schema: IDEAgentOutputSchema },
-  prompt: `You are the NEOCADE Quantum AI Architect. You control the development environment.
+  prompt: `You are the NEO CODE Quantum AI Architect. You control the development environment.
 The user will ask you to write code, create project structures, or analyze things.
 
 Context:

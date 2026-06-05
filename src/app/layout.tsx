@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'NEOCADE | Quantum AI IDE',
+  title: 'NEO CODE | Quantum AI IDE',
   description: 'The world\'s most advanced AI-powered polyglot IDE and developer platform.',
 };
 

@@ -75,7 +75,7 @@ export function AIAssistant({ currentFile, currentCode, fileList, onAction }: AI
         <div className="p-4 border-b border-white/10 flex items-center justify-between bg-primary/5">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4 text-primary" />
-            <h3 className="font-headline text-primary font-bold tracking-wider text-xs uppercase">NEOCADE AI CORE</h3>
+            <h3 className="font-headline text-primary font-bold tracking-wider text-xs uppercase">NEO CODE AI CORE</h3>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="hover:text-primary h-6 w-6">
             <X className="h-4 w-4" />
