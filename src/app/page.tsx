@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useCallback, useMemo } from "react"
@@ -9,7 +10,7 @@ import { EditorTabs } from "@/components/ide/EditorTabs"
 import { CodeEditor } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
-import { FileCode, Braces, Terminal as TerminalIcon, FileText } from "lucide-react"
+import { FileCode, FileText } from "lucide-react"
 import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel } from "@/components/ide/FeaturePanels"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
@@ -30,11 +31,11 @@ const initialFiles: FileNode[] = [
     type: 'folder',
     isOpen: true,
     children: [
-      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import { QuantumCore } from "@neocode/core";\n\nconsole.log("NEO CODE INITIALIZED");' },
-      { id: 'styles.css', name: 'styles.css', type: 'file', content: 'body { background: #0D1117; color: #00BFFF; }' }
+      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import { QuantumCore } from "@neocode/core";\n\nconsole.log("NEO CODE INITIALIZED");\n\nexport const init = () => {\n  const engine = new QuantumCore();\n  engine.start();\n};' },
+      { id: 'styles.css', name: 'styles.css', type: 'file', content: 'body {\n  background: #0D1117;\n  color: #00BFFF;\n  font-family: "Space Grotesk", sans-serif;\n}' }
     ]
   },
-  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEO CODE Project\nQuantum-ready workspace.' }
+  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEO CODE Project\n\nQuantum-ready workspace powered by GenAI.\n\n## Get Started\n1. Open `src/app.tsx`\n2. Click "Run" in the terminal\n3. Ask AI for help!' }
 ]
 
 export default function IDEPage() {
@@ -45,6 +46,7 @@ export default function IDEPage() {
   ])
   const [selectedId, setSelectedId] = useState<string | null>('app.tsx')
   const [searchQuery, setSearchQuery] = useState('')
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false)
   const { toast } = useToast()
 
   const activeFile = useMemo(() => {
@@ -100,10 +102,10 @@ export default function IDEPage() {
   }
 
   const createFile = (name: string, content: string = '', parentId?: string) => {
-    const newNode: FileNode = { id: name, name, type: 'file', content }
-    if (!parentId) {
-      setFiles([...files, newNode])
-    } else {
+    const newNodeId = name + '-' + Date.now()
+    const newNode: FileNode = { id: newNodeId, name, type: 'file', content }
+    
+    if (parentId) {
       const addToParent = (nodes: FileNode[]): FileNode[] => {
         return nodes.map(node => {
           if (node.id === parentId) return { ...node, children: [...(node.children || []), newNode], isOpen: true }
@@ -112,15 +114,17 @@ export default function IDEPage() {
         })
       }
       setFiles(addToParent(files))
+    } else {
+      setFiles([...files, newNode])
     }
     openFile(newNode)
   }
 
   const createFolder = (name: string, parentId?: string) => {
-    const newNode: FileNode = { id: name, name, type: 'folder', children: [], isOpen: true }
-    if (!parentId) {
-      setFiles([...files, newNode])
-    } else {
+    const newNodeId = name + '-' + Date.now()
+    const newNode: FileNode = { id: newNodeId, name, type: 'folder', children: [], isOpen: true }
+    
+    if (parentId) {
       const addToParent = (nodes: FileNode[]): FileNode[] => {
         return nodes.map(node => {
           if (node.id === parentId) return { ...node, children: [...(node.children || []), newNode], isOpen: true }
@@ -129,6 +133,8 @@ export default function IDEPage() {
         })
       }
       setFiles(addToParent(files))
+    } else {
+      setFiles([...files, newNode])
     }
   }
 
@@ -136,14 +142,17 @@ export default function IDEPage() {
     switch(action) {
       case 'new-file':
         const name = prompt("Enter file name:")
-        if (name) createFile(name)
+        if (name) createFile(name, '', selectedId || undefined)
         break
       case 'new-folder':
         const folderName = prompt("Enter folder name:")
-        if (folderName) createFolder(folderName)
+        if (folderName) createFolder(folderName, selectedId || undefined)
         break
       case 'save':
         toast({ title: "Project Saved", description: "All changes committed to neural cache." })
+        break
+      case 'ai-assistant':
+        setIsAiPanelOpen(!isAiPanelOpen)
         break
       default:
         console.log("Action not implemented", action)
@@ -191,7 +200,11 @@ export default function IDEPage() {
         return (
           <div className="flex-1 flex flex-col overflow-hidden">
             <EditorTabs tabs={tabs} onTabClick={handleTabClick} onTabClose={handleTabClose} />
-            <CodeEditor code={activeFile?.content || ''} language="typescript" onChange={handleUpdateCode} />
+            <CodeEditor 
+              code={activeFile?.content || ''} 
+              fileName={activeFile?.name || 'app.tsx'} 
+              onChange={handleUpdateCode} 
+            />
           </div>
         )
     }
@@ -207,7 +220,25 @@ export default function IDEPage() {
         {renderSidebarView()}
         
         <div className="flex-1 flex flex-col relative overflow-hidden border-l border-border/50">
-          {renderMainContent()}
+          <div className="flex-1 flex overflow-hidden">
+            {renderMainContent()}
+            
+            {/* Professional AI Panel (Collapsible) */}
+            <div className={`transition-all duration-300 border-l border-border/50 ${isAiPanelOpen ? 'w-[400px]' : 'w-0 overflow-hidden'}`}>
+               <AIAssistant 
+                currentFile={activeFile?.id}
+                currentCode={activeFile?.content}
+                fileList={files.map(f => f.name)}
+                onAction={(action) => {
+                   if (action.type === 'createFile' && action.path) createFile(action.path, action.content)
+                   if (action.type === 'createFolder' && action.path) createFolder(action.path)
+                   if (action.type === 'updateCode' && action.content) handleUpdateCode(action.content)
+                }}
+                isEmbedded
+              />
+            </div>
+          </div>
+          
           <TerminalView />
         </div>
       </div>
@@ -230,10 +261,14 @@ export default function IDEPage() {
              QUANTUM-READY
           </div>
           <span>UTF-8</span>
+          <span>Line 1, Col 1</span>
         </div>
         <div className="flex items-center gap-4">
           <span>POLYGLOT ENGINE: STABLE</span>
           <span className="opacity-70">NEURAL-LINK ACTIVE</span>
+          <span className="flex items-center gap-1">
+            <FileCode className="h-3 w-3" /> TypeScript React
+          </span>
         </div>
       </footer>
       <Toaster />
