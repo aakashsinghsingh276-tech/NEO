@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, GitBranch, Play, ShieldAlert, Bug, History, Lock, AlertTriangle, CheckCircle2 } from "lucide-react"
+import { Search, ShieldAlert, AlertTriangle, CheckCircle2, Box, Download, Check, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -221,6 +222,78 @@ export function SecuritySidebar() {
             </div>
           </div>
         )}
+      </ScrollArea>
+    </div>
+  )
+}
+
+export function ExtensionsSidebar({ installed, onInstall }: { installed: string[], onInstall: (id: string) => void }) {
+  const languages = [
+    { id: 'js', name: 'JavaScript', version: 'ES2024', desc: 'Core web functionality engine.' },
+    { id: 'ts', name: 'TypeScript', version: 'v5.4', desc: 'Strictly typed web scaling.' },
+    { id: 'py', name: 'Python', version: 'v3.12', desc: 'AI and backend intelligence.' },
+    { id: 'java', name: 'Java', version: 'v21 JDK', desc: 'Enterprise stability platform.' },
+    { id: 'cpp', name: 'C++', version: 'v17', desc: 'Low-level performance core.' },
+    { id: 'go', name: 'Go', version: 'v1.24', desc: 'Cloud-native concurrency.' },
+    { id: 'rs', name: 'Rust', version: 'v1.75', desc: 'Safe systems programming.' },
+    { id: 'php', name: 'PHP', version: 'v8.3', desc: 'Classic web server scripts.' },
+    { id: 'cs', name: 'C#', version: 'v12', desc: 'Enterprise Windows & Games.' },
+    { id: 'lua', name: 'Lua', version: 'v5.4', desc: 'Embedded game scripting.' },
+  ]
+
+  const [search, setSearch] = useState('')
+  const filtered = languages.filter(l => l.name.toLowerCase().includes(search.toLowerCase()))
+
+  return (
+    <div className="w-[240px] bg-sidebar/50 border-r border-border h-full flex flex-col">
+      <div className="p-3 border-b border-border">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Language Manager</span>
+        <div className="mt-2 relative">
+          <Input 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search languages..." 
+            className="h-8 text-xs bg-white/5 border-white/10 pl-8"
+          />
+          <Box className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+        </div>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-4">
+          {filtered.map(lang => (
+            <div key={lang.id} className="p-3 border border-white/5 bg-white/5 rounded-xl group transition-all hover:border-primary/30">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">{lang.name}</h4>
+                  <p className="text-[10px] text-muted-foreground">{lang.version}</p>
+                </div>
+                {installed.includes(lang.id) ? (
+                  <Badge className="bg-primary/20 text-primary border-none h-5 text-[9px] uppercase">ACTIVE</Badge>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => onInstall(lang.id)}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground/80 leading-relaxed mb-3">
+                {lang.desc}
+              </p>
+              <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-1 text-[8px] text-primary font-bold">
+                    <Check className="h-3 w-3" /> RUNTIME READY
+                 </div>
+                 <div className="flex items-center gap-1 text-[8px] text-muted-foreground">
+                    <Info className="h-3 w-3" /> LSP ENABLED
+                 </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </ScrollArea>
     </div>
   )

@@ -5,7 +5,7 @@ import { useState, useCallback, useMemo, useEffect } from "react"
 import { Sidebar } from "@/components/ide/Sidebar"
 import { TopNav } from "@/components/ide/TopNav"
 import { ProjectExplorer } from "@/components/ide/ProjectExplorer"
-import { SearchSidebar, GitSidebar, DebugSidebar, SecuritySidebar } from "@/components/ide/SidebarViews"
+import { SearchSidebar, GitSidebar, DebugSidebar, SecuritySidebar, ExtensionsSidebar } from "@/components/ide/SidebarViews"
 import { EditorTabs } from "@/components/ide/EditorTabs"
 import { CodeEditor, getLanguageFromFileName } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
@@ -51,6 +51,7 @@ export default function IDEPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [installedLanguages, setInstalledLanguages] = useState<string[]>(['js', 'ts'])
   
   // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -176,6 +177,14 @@ export default function IDEPage() {
     toast({ title: "Saved to Computer", description: `${activeFile.name} downloaded successfully.` })
   }
 
+  const handleInstallLanguage = (id: string) => {
+    toast({ title: "Installation Started", description: `Fetching runtime for ${id}...` })
+    setTimeout(() => {
+      setInstalledLanguages(prev => [...prev, id])
+      toast({ title: "Language Installed", description: `${id.toUpperCase()} is now active in NEO CODE.` })
+    }, 2000)
+  }
+
   const handleFileAction = (action: string) => {
     switch(action) {
       case 'new-file':
@@ -247,6 +256,8 @@ export default function IDEPage() {
         return <DebugSidebar />
       case 'security':
         return <SecuritySidebar />
+      case 'extensions':
+        return <ExtensionsSidebar installed={installedLanguages} onInstall={handleInstallLanguage} />
       default:
         return null
     }
@@ -305,7 +316,7 @@ export default function IDEPage() {
             </div>
           </div>
           
-          <TerminalView />
+          <TerminalView activeFile={activeFile?.name} />
         </div>
       </div>
 
@@ -364,12 +375,12 @@ export default function IDEPage() {
                 </div>
                 <h2 className="text-3xl font-bold text-slate-800 mb-4">NEO CODE Live Preview</h2>
                 <p className="text-slate-500 max-w-md mb-8">
-                  Your application is running in the quantum sandbox. All changes in `src/app.tsx` are hot-reloaded instantly.
+                  Your application is running in the quantum sandbox. All changes in `{activeFile?.name || 'app.tsx'}` are hot-reloaded instantly.
                 </p>
                 <div className="grid grid-cols-2 gap-4 w-full">
                    <div className="p-6 border border-slate-100 rounded-xl text-left bg-slate-50">
                       <p className="text-[10px] font-bold text-primary uppercase mb-1">Active Route</p>
-                      <p className="text-sm font-code text-slate-700 font-bold">/index.html</p>
+                      <p className="text-sm font-code text-slate-700 font-bold">/{activeFile?.name || 'index.html'}</p>
                    </div>
                    <div className="p-6 border border-slate-100 rounded-xl text-left bg-slate-50">
                       <p className="text-[10px] font-bold text-accent uppercase mb-1">Server Status</p>

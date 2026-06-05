@@ -1,3 +1,4 @@
+
 "use client"
 
 import { 
@@ -15,13 +16,13 @@ import {
   Zap
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const menuItems = [
   { id: 'explorer', icon: Files, label: 'Explorer' },
   { id: 'search', icon: Search, label: 'Search' },
   { id: 'git', icon: GitBranch, label: 'Source Control' },
+  { id: 'extensions', icon: Box, label: 'Extensions & Languages' },
   { id: 'run', icon: Play, label: 'Run & Debug' },
   { id: 'neocad', icon: Cuboid, label: 'NeoCAD 3D' },
   { id: 'quantum', icon: Zap, label: 'Quantum Ready' },
@@ -50,7 +51,7 @@ export function Sidebar({ activeId, onActiveChange }: {
                   className={cn(
                     "p-3 rounded-xl transition-all relative group",
                     activeId === item.id 
-                      ? "bg-primary/10 text-primary shadow-[0_0_10px_rgba(165,255,0,0.1)]" 
+                      ? "bg-primary/10 text-primary shadow-[0_0_10px_rgba(0,191,255,0.1)]" 
                       : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                   )}
                 >

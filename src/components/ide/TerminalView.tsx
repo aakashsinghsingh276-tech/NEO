@@ -17,7 +17,22 @@ interface TerminalInstance {
   logs: { type: 'info' | 'success' | 'warning' | 'error' | 'input', text: string }[]
 }
 
-export function TerminalView() {
+const LANGUAGE_RUN_COMMANDS: Record<string, string> = {
+  js: 'node',
+  ts: 'tsx',
+  py: 'python3',
+  java: 'javac %f && java %n',
+  cpp: 'g++ %f -o %n && ./%n',
+  c: 'gcc %f -o %n && ./%n',
+  go: 'go run %f',
+  rs: 'rustc %f && ./%n',
+  php: 'php %f',
+  rb: 'ruby %f',
+  lua: 'lua %f',
+  cs: 'dotnet run',
+}
+
+export function TerminalView({ activeFile }: { activeFile?: string }) {
   const [terminals, setTerminals] = useState<TerminalInstance[]>([
     { 
       id: 'term-node', 
@@ -62,7 +77,7 @@ export function TerminalView() {
       const newLogs = [...activeTerm.logs, { type: 'input', text: input }]
       
       if (cmd === 'help') {
-        newLogs.push({ type: 'info', text: 'Commands: help, status, clear, run, neofetch, system-scan' })
+        newLogs.push({ type: 'info', text: 'Commands: help, status, clear, run, neofetch, system-scan, npm, pip' })
       } else if (cmd === 'clear') {
         updateActiveLogs([])
         setInput("")
@@ -71,14 +86,25 @@ export function TerminalView() {
         newLogs.push({ type: 'success', text: 'SYSTEM: OPTIMIZED | CPU: 14% | LATENCY: 2ms | UPTIME: 14h 23m' })
       } else if (cmd === 'run') {
         setIsRunning(true)
-        newLogs.push({ type: 'info', text: 'Executing project build pipeline...' })
+        const ext = activeFile?.split('.').pop() || 'js'
+        const baseName = activeFile?.split('.')[0] || 'app'
+        const runCmdTemplate = LANGUAGE_RUN_COMMANDS[ext] || 'node'
+        const runCmd = runCmdTemplate.replace('%f', activeFile || 'app.js').replace('%n', baseName)
+        
+        newLogs.push({ type: 'info', text: `Executing: ${runCmd}` })
         setTimeout(() => {
-           newLogs.push({ type: 'success', text: 'Build successful. Serving app at http://localhost:9002' })
+           newLogs.push({ type: 'success', text: `[${activeFile}] Process exited with status 0.` })
            setIsRunning(false)
            updateActiveLogs([...newLogs])
-        }, 1500)
+        }, 1200)
       } else if (cmd === 'neofetch') {
         newLogs.push({ type: 'info', text: 'OS: NEO CODE Quantum v1\nKernel: 5.15.0-generic\nUptime: 14 hours\nPackages: 1337 (apt)\nShell: zsh 5.8\nCPU: AMD EPYC (Quantum)\nGPU: Simulated-X 4090\nMemory: 32GiB' })
+      } else if (cmd.startsWith('npm') || cmd.startsWith('pip')) {
+        newLogs.push({ type: 'info', text: `Synchronizing packages for project...` })
+        setTimeout(() => {
+           newLogs.push({ type: 'success', text: `Dependencies updated successfully.` })
+           updateActiveLogs([...newLogs, { type: 'info', text: 'All vulnerability checks passed.' }])
+        }, 1500)
       } else {
         newLogs.push({ type: 'error', text: `QuantumShell: Command not found: ${cmd}` })
       }
@@ -121,7 +147,12 @@ export function TerminalView() {
         
         <div className="flex items-center gap-3 pl-4 border-l border-border/50 ml-2">
            <button 
-             onClick={() => setIsRunning(!isRunning)} 
+             onClick={() => {
+                setInput('run')
+                // Force a pseudo-enter
+                const event = { key: 'Enter', preventDefault: () => {}, target: { value: 'run' } } as any
+                handleCommand(event)
+             }} 
              className={cn("p-1 rounded hover:bg-white/10 transition-colors", isRunning ? "text-red-400" : "text-primary")}
            >
              {isRunning ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
