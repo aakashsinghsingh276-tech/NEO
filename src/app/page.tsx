@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useCallback, useMemo, useEffect } from "react"
@@ -6,7 +7,7 @@ import { TopNav } from "@/components/ide/TopNav"
 import { ProjectExplorer } from "@/components/ide/ProjectExplorer"
 import { SearchSidebar, GitSidebar, DebugSidebar, SecuritySidebar } from "@/components/ide/SidebarViews"
 import { EditorTabs } from "@/components/ide/EditorTabs"
-import { CodeEditor } from "@/components/ide/CodeEditor"
+import { CodeEditor, getLanguageFromFileName } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
 import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw } from "lucide-react"
@@ -270,6 +271,12 @@ export default function IDEPage() {
     }
   }
 
+  const detectedLanguage = useMemo(() => {
+    if (!activeFile) return 'Plain Text'
+    const lang = getLanguageFromFileName(activeFile.name)
+    return lang.charAt(0).toUpperCase() + lang.slice(1)
+  }, [activeFile])
+
   return (
     <main className="h-screen w-screen flex flex-col overflow-hidden bg-background text-foreground">
       <TopNav onSearch={setSearchQuery} onAction={handleFileAction} />
@@ -283,7 +290,6 @@ export default function IDEPage() {
           <div className="flex-1 flex overflow-hidden">
             {renderMainContent()}
             
-            {/* Professional AI Panel (Collapsible) */}
             <div className={`transition-all duration-300 border-l border-border/50 ${isAiPanelOpen ? 'w-[400px]' : 'w-0 overflow-hidden'}`}>
                <AIAssistant 
                 currentFile={activeFile?.id}
@@ -303,7 +309,6 @@ export default function IDEPage() {
         </div>
       </div>
 
-      {/* Creation Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="glass-panel border-primary/20 sm:max-w-[425px]">
           <DialogHeader>
@@ -328,7 +333,6 @@ export default function IDEPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Real App Preview Overlay */}
       {isPreviewOpen && (
         <div className="fixed inset-4 z-[100] glass-panel rounded-2xl border-primary/40 shadow-[0_0_100px_rgba(0,191,255,0.2)] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
           <div className="h-12 bg-black/60 border-b border-white/10 flex items-center justify-between px-6">
@@ -401,7 +405,7 @@ export default function IDEPage() {
           <span>POLYGLOT ENGINE: STABLE</span>
           <span className="opacity-70">NEURAL-LINK ACTIVE</span>
           <span className="flex items-center gap-1">
-            <FileCode className="h-3 w-3" /> TypeScript React
+            <FileCode className="h-3 w-3" /> {detectedLanguage}
           </span>
         </div>
       </footer>

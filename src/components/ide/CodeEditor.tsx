@@ -10,6 +10,75 @@ interface CodeEditorProps {
   onChange?: (val: string) => void
 }
 
+/**
+ * Helper to map file extensions to Monaco-supported language IDs
+ */
+export const getLanguageFromFileName = (name: string) => {
+  const ext = name.split('.').pop()?.toLowerCase()
+  switch (ext) {
+    case 'tsx':
+    case 'ts':
+      return 'typescript'
+    case 'jsx':
+    case 'js':
+      return 'javascript'
+    case 'css':
+    case 'scss':
+    case 'less':
+      return 'css'
+    case 'html':
+      return 'html'
+    case 'md':
+    case 'markdown':
+      return 'markdown'
+    case 'json':
+      return 'json'
+    case 'py':
+      return 'python'
+    case 'java':
+      return 'java'
+    case 'cpp':
+    case 'cc':
+    case 'cxx':
+    case 'hpp':
+    case 'h':
+      return 'cpp'
+    case 'c':
+      return 'c'
+    case 'cs':
+      return 'csharp'
+    case 'go':
+      return 'go'
+    case 'rs':
+      return 'rust'
+    case 'php':
+      return 'php'
+    case 'kt':
+    case 'kts':
+      return 'kotlin'
+    case 'swift':
+      return 'swift'
+    case 'dart':
+      return 'dart'
+    case 'lua':
+      return 'lua'
+    case 'rb':
+      return 'ruby'
+    case 'sql':
+      return 'sql'
+    case 'sh':
+    case 'bash':
+      return 'shell'
+    case 'yaml':
+    case 'yml':
+      return 'yaml'
+    case 'xml':
+      return 'xml'
+    default:
+      return 'plaintext'
+  }
+}
+
 export function CodeEditor({ code, fileName, onChange }: CodeEditorProps) {
   const editorRef = useRef<any>(null)
 
@@ -41,34 +110,12 @@ export function CodeEditor({ code, fileName, onChange }: CodeEditorProps) {
     monaco.editor.setTheme('cyber-dark')
   }
 
-  const getLanguage = (name: string) => {
-    const ext = name.split('.').pop()
-    switch (ext) {
-      case 'tsx':
-      case 'ts':
-        return 'typescript'
-      case 'jsx':
-      case 'js':
-        return 'javascript'
-      case 'css':
-        return 'css'
-      case 'html':
-        return 'html'
-      case 'md':
-        return 'markdown'
-      case 'json':
-        return 'json'
-      default:
-        return 'typescript'
-    }
-  }
-
   return (
     <div className="flex-1 w-full h-full bg-[#0D1117] relative">
       <Editor
         height="100%"
         width="100%"
-        language={getLanguage(fileName)}
+        language={getLanguageFromFileName(fileName)}
         value={code}
         theme="cyber-dark"
         onChange={(value) => onChange?.(value || "")}
