@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Sidebar } from "@/components/ide/Sidebar"
 import { TopNav } from "@/components/ide/TopNav"
 import { ProjectExplorer } from "@/components/ide/ProjectExplorer"
@@ -10,10 +9,13 @@ import { EditorTabs } from "@/components/ide/EditorTabs"
 import { CodeEditor } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
-import { FileCode, FileText } from "lucide-react"
+import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw } from "lucide-react"
 import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel } from "@/components/ide/FeaturePanels"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 export interface FileNode {
   id: string
@@ -31,11 +33,11 @@ const initialFiles: FileNode[] = [
     type: 'folder',
     isOpen: true,
     children: [
-      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import { QuantumCore } from "@neocode/core";\n\nconsole.log("NEO CODE INITIALIZED");\n\nexport const init = () => {\n  const engine = new QuantumCore();\n  engine.start();\n};' },
+      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import React from "react";\n\nexport default function App() {\n  return (\n    <div className="p-8 bg-slate-900 text-white min-h-screen flex items-center justify-center">\n      <h1 className="text-4xl font-bold text-blue-400">Hello NEO CODE!</h1>\n    </div>\n  );\n}' },
       { id: 'styles.css', name: 'styles.css', type: 'file', content: 'body {\n  background: #0D1117;\n  color: #00BFFF;\n  font-family: "Space Grotesk", sans-serif;\n}' }
     ]
   },
-  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEO CODE Project\n\nQuantum-ready workspace powered by GenAI.\n\n## Get Started\n1. Open `src/app.tsx`\n2. Click "Run" in the terminal\n3. Ask AI for help!' }
+  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEO CODE Project\n\nQuantum-ready workspace powered by GenAI.\n\n## Get Started\n1. Open `src/app.tsx`\n2. Click "Run" in the top menu\n3. Ask AI for help!' }
 ]
 
 export default function IDEPage() {
@@ -47,6 +49,13 @@ export default function IDEPage() {
   const [selectedId, setSelectedId] = useState<string | null>('app.tsx')
   const [searchQuery, setSearchQuery] = useState('')
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  
+  // Modal States
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [createType, setCreateType] = useState<'file' | 'folder'>('file')
+  const [newItemName, setNewItemName] = useState('')
+
   const { toast } = useToast()
 
   const activeFile = useMemo(() => {
@@ -138,15 +147,51 @@ export default function IDEPage() {
     }
   }
 
+  const handleDelete = (id: string) => {
+    const removeFromTree = (nodes: FileNode[]): FileNode[] => {
+      return nodes
+        .filter(node => node.id !== id)
+        .map(node => ({
+          ...node,
+          children: node.children ? removeFromTree(node.children) : undefined
+        }))
+    }
+    setFiles(removeFromTree(files))
+    handleTabClose(id)
+    toast({ title: "Deleted", description: "Resource removed from neural-link.", variant: "destructive" })
+  }
+
+  const handleSaveToSystem = () => {
+    if (!activeFile) return
+    const blob = new Blob([activeFile.content || ''], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = activeFile.name
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    toast({ title: "Saved to Computer", description: `${activeFile.name} downloaded successfully.` })
+  }
+
   const handleFileAction = (action: string) => {
     switch(action) {
       case 'new-file':
-        const name = prompt("Enter file name:")
-        if (name) createFile(name, '', selectedId || undefined)
+        setCreateType('file')
+        setIsCreateModalOpen(true)
         break
       case 'new-folder':
-        const folderName = prompt("Enter folder name:")
-        if (folderName) createFolder(folderName, selectedId || undefined)
+        setCreateType('folder')
+        setIsCreateModalOpen(true)
+        break
+      case 'save-as':
+        handleSaveToSystem()
+        break
+      case 'start-debug':
+      case 'run-without-debug':
+        setIsPreviewOpen(true)
+        toast({ title: "Launching App", description: "Compiling and serving project...", duration: 2000 })
         break
       case 'save':
         toast({ title: "Project Saved", description: "All changes committed to neural cache." })
@@ -154,9 +199,23 @@ export default function IDEPage() {
       case 'ai-assistant':
         setIsAiPanelOpen(!isAiPanelOpen)
         break
+      case 'delete':
+        if (selectedId) handleDelete(selectedId)
+        break
       default:
         console.log("Action not implemented", action)
     }
+  }
+
+  const confirmCreate = () => {
+    if (!newItemName) return
+    if (createType === 'file') {
+      createFile(newItemName, '', selectedId || undefined)
+    } else {
+      createFolder(newItemName, selectedId || undefined)
+    }
+    setNewItemName('')
+    setIsCreateModalOpen(false)
   }
 
   const renderSidebarView = () => {
@@ -177,6 +236,7 @@ export default function IDEPage() {
             }
             findAndOpen(files)
           }} 
+          onDelete={handleDelete}
         />
       case 'search':
         return <SearchSidebar searchQuery={searchQuery} onSearch={setSearchQuery} />
@@ -242,6 +302,80 @@ export default function IDEPage() {
           <TerminalView />
         </div>
       </div>
+
+      {/* Creation Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="glass-panel border-primary/20 sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-primary font-bold uppercase tracking-widest text-sm">
+              New {createType === 'file' ? 'File' : 'Folder'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input 
+              autoFocus
+              placeholder={`Enter ${createType} name...`}
+              value={newItemName}
+              onChange={(e) => setNewItemName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && confirmCreate()}
+              className="bg-black/40 border-white/10"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)}>CANCEL</Button>
+            <Button onClick={confirmCreate} className="bg-primary text-black font-bold">CREATE</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Real App Preview Overlay */}
+      {isPreviewOpen && (
+        <div className="fixed inset-4 z-[100] glass-panel rounded-2xl border-primary/40 shadow-[0_0_100px_rgba(0,191,255,0.2)] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="h-12 bg-black/60 border-b border-white/10 flex items-center justify-between px-6">
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1.5 mr-4">
+                <div className="h-3 w-3 rounded-full bg-red-500/50" />
+                <div className="h-3 w-3 rounded-full bg-yellow-500/50" />
+                <div className="h-3 w-3 rounded-full bg-green-500/50" />
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1 text-[10px] text-muted-foreground w-[400px]">
+                <Globe className="h-3 w-3" />
+                <span className="truncate">https://neocode-quantum-preview.local:3000</span>
+                <RefreshCw className="h-3 w-3 ml-auto hover:text-primary cursor-pointer" />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+               <div className="flex items-center gap-2 text-[10px] text-primary font-bold animate-pulse">
+                 <Shield className="h-3 w-3" /> SECURE LINK ACTIVE
+               </div>
+               <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(false)} className="h-8 w-8 hover:text-red-500">
+                 <X className="h-4 w-4" />
+               </Button>
+            </div>
+          </div>
+          <div className="flex-1 bg-slate-900 flex items-center justify-center p-12 overflow-auto">
+             <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl min-h-[500px] p-12 flex flex-col items-center justify-center text-center">
+                <div className="h-20 w-20 bg-primary/20 rounded-full flex items-center justify-center mb-6">
+                  <Play className="h-10 w-10 text-primary" />
+                </div>
+                <h2 className="text-3xl font-bold text-slate-800 mb-4">NEO CODE Live Preview</h2>
+                <p className="text-slate-500 max-w-md mb-8">
+                  Your application is running in the quantum sandbox. All changes in `src/app.tsx` are hot-reloaded instantly.
+                </p>
+                <div className="grid grid-cols-2 gap-4 w-full">
+                   <div className="p-6 border border-slate-100 rounded-xl text-left bg-slate-50">
+                      <p className="text-[10px] font-bold text-primary uppercase mb-1">Active Route</p>
+                      <p className="text-sm font-code text-slate-700 font-bold">/index.html</p>
+                   </div>
+                   <div className="p-6 border border-slate-100 rounded-xl text-left bg-slate-50">
+                      <p className="text-[10px] font-bold text-accent uppercase mb-1">Server Status</p>
+                      <p className="text-sm font-code text-slate-700 font-bold">200 OK - 0ms Latency</p>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
 
       <AIAssistant 
         currentFile={activeFile?.id}

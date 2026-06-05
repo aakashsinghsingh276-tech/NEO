@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronDown, ChevronRight, File, Folder, FolderOpen, Trash2, Plus, FilePlus } from "lucide-react"
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { FileNode } from "@/app/page"
 
@@ -74,12 +74,13 @@ function TreeNode({
   )
 }
 
-export function ProjectExplorer({ searchQuery = '', files, setFiles, selectedId, onSelect }: { 
+export function ProjectExplorer({ searchQuery = '', files, setFiles, selectedId, onSelect, onDelete }: { 
   searchQuery?: string,
   files: FileNode[],
   setFiles: (f: FileNode[]) => void,
   selectedId: string | null,
-  onSelect: (id: string) => void
+  onSelect: (id: string) => void,
+  onDelete: (id: string) => void
 }) {
 
   const handleToggleFolder = (id: string) => {
@@ -91,51 +92,6 @@ export function ProjectExplorer({ searchQuery = '', files, setFiles, selectedId,
       })
     }
     setFiles(updateNodes(files))
-  }
-
-  const handleAdd = (type: 'file' | 'folder') => {
-    const name = window.prompt(`Enter ${type} name:`)
-    if (!name) return
-
-    const newNode: FileNode = {
-      id: name + Date.now(),
-      name,
-      type,
-      content: type === 'file' ? '' : undefined,
-      isOpen: type === 'folder',
-      children: type === 'folder' ? [] : undefined
-    }
-
-    const addToTree = (nodes: FileNode[]): FileNode[] => {
-      return nodes.map(node => {
-        if (node.id === selectedId && node.type === 'folder') {
-          return { ...node, children: [...(node.children || []), newNode], isOpen: true }
-        }
-        if (node.children) {
-          const newChildren = addToTree(node.children)
-          if (newChildren !== node.children) return { ...node, children: newChildren }
-        }
-        return node
-      })
-    }
-
-    if (!selectedId) {
-      setFiles([...files, newNode])
-    } else {
-      setFiles(addToTree(files))
-    }
-  }
-
-  const handleDelete = (id: string) => {
-    const removeFromTree = (nodes: FileNode[]): FileNode[] => {
-      return nodes
-        .filter(node => node.id !== id)
-        .map(node => ({
-          ...node,
-          children: node.children ? removeFromTree(node.children) : undefined
-        }))
-    }
-    setFiles(removeFromTree(files))
   }
 
   const filteredFiles = useMemo(() => {
@@ -158,13 +114,9 @@ export function ProjectExplorer({ searchQuery = '', files, setFiles, selectedId,
     <div className="w-[240px] bg-sidebar/50 border-r border-border h-full flex flex-col">
       <div className="p-3 border-b border-border flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Explorer</span>
-        <div className="flex gap-2">
-          <button onClick={() => handleAdd('folder')} className="p-1 hover:text-primary rounded hover:bg-white/5" title="New Folder">
-            <Plus className="h-4 w-4" />
-          </button>
-          <button onClick={() => handleAdd('file')} className="p-1 hover:text-primary rounded hover:bg-white/5" title="New File">
-            <FilePlus className="h-4 w-4" />
-          </button>
+        <div className="flex gap-2 text-muted-foreground">
+          <Plus className="h-3.5 w-3.5 hover:text-primary cursor-pointer" title="New Folder Tool (Use File Menu)" />
+          <FilePlus className="h-3.5 w-3.5 hover:text-primary cursor-pointer" title="New File Tool (Use File Menu)" />
         </div>
       </div>
       <div className="p-2 overflow-y-auto custom-scrollbar flex-1">
@@ -174,7 +126,7 @@ export function ProjectExplorer({ searchQuery = '', files, setFiles, selectedId,
             node={node} 
             selectedId={selectedId}
             onSelect={onSelect}
-            onDelete={handleDelete}
+            onDelete={onDelete}
             onToggle={handleToggleFolder}
           />
         ))}
