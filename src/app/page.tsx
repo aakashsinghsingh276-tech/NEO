@@ -17,6 +17,9 @@ import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { useFirestore, useCollection } from "@/firebase"
+import { collection, doc, setDoc, deleteDoc, query, where, serverTimestamp } from "firebase/firestore"
+import { useMemoFirebase } from "@/firebase/firestore/use-memo-firebase"
 
 export interface FileNode {
   id: string
@@ -27,27 +30,21 @@ export interface FileNode {
   content?: string
 }
 
-const initialFiles: FileNode[] = [
-  {
-    id: 'src',
-    name: 'src',
-    type: 'folder',
-    isOpen: true,
-    children: [
-      { id: 'app.tsx', name: 'app.tsx', type: 'file', content: 'import React from "react";\n\nexport default function App() {\n  return (\n    <div className="p-8 bg-slate-900 text-white min-h-screen flex items-center justify-center font-code">\n      <h1 className="text-4xl font-bold text-blue-400">Hello NEO CODE!</h1>\n      <p className="mt-4 text-slate-400">Quantum Intelligence Powered IDE</p>\n    </div>\n  );\n}' },
-      { id: 'styles.css', name: 'styles.css', type: 'file', content: 'body {\n  background: #0D1117;\n  color: #00BFFF;\n  font-family: "Space Grotesk", sans-serif;\n}\n\n.neon-glow {\n  text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);\n}' }
-    ]
-  },
-  { id: 'README.md', name: 'README.md', type: 'file', content: '# NEO CODE Project\n\nQuantum-ready workspace powered by GenAI.\n\n## Features\n- Polyglot Runtime\n- AI Architect Core\n- Integrated Terminal\n- Git Source Control' }
-]
-
 export default function IDEPage() {
+  const db = useFirestore();
+  const { toast } = useToast()
+  
+  // Real-time Files from Firestore (Simulating for a default project 'main')
+  const filesQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return collection(db, "projects", "main", "files");
+  }, [db]);
+  
+  const { data: remoteFiles, loading: filesLoading } = useCollection<any>(filesQuery);
+
   const [activeSidebarTab, setActiveSidebarTab] = useState('explorer')
-  const [files, setFiles] = useState<FileNode[]>(initialFiles)
-  const [tabs, setTabs] = useState<{id: string, name: string, icon: any, active: boolean}[]>([
-    { id: 'app.tsx', name: 'app.tsx', icon: <FileCode className="h-4 w-4" />, active: true }
-  ])
-  const [selectedId, setSelectedId] = useState<string | null>('app.tsx')
+  const [tabs, setTabs] = useState<{id: string, name: string, icon: any, active: boolean}[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(true)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
@@ -62,31 +59,41 @@ export default function IDEPage() {
   const [createType, setCreateType] = useState<'file' | 'folder'>('file')
   const [newItemName, setNewItemName] = useState('')
 
-  const { toast } = useToast()
+  // Construct Tree from Flat List
+  const files = useMemo(() => {
+    if (!remoteFiles || remoteFiles.length === 0) {
+      return [
+        { id: 'README.md', name: 'README.md', type: 'file' as const, content: '# Welcome to NEO CODE\n\nQuantum Intelligence powered workspace.' }
+      ];
+    }
+    
+    const tree: FileNode[] = [];
+    const map: Record<string, FileNode> = {};
+    
+    remoteFiles.forEach(f => {
+      map[f.id] = { ...f, children: f.type === 'folder' ? [] : undefined };
+    });
+    
+    remoteFiles.forEach(f => {
+      if (f.parentId && map[f.parentId]) {
+        map[f.parentId].children?.push(map[f.id]);
+      } else {
+        tree.push(map[f.id]);
+      }
+    });
+    
+    return tree;
+  }, [remoteFiles]);
 
   const activeFile = useMemo(() => {
-    const findFile = (nodes: FileNode[], id: string): FileNode | null => {
-      for (const node of nodes) {
-        if (node.id === id) return node
-        if (node.children) {
-          const found = findFile(node.children, id)
-          if (found) return found
-        }
-      }
-      return null
-    }
-    return findFile(files, tabs.find(t => t.active)?.id || '')
-  }, [files, tabs])
+    if (!remoteFiles || !selectedId) return null;
+    return remoteFiles.find(f => f.id === selectedId) || null;
+  }, [remoteFiles, selectedId]);
 
   const handleUpdateCode = (newCode: string) => {
-    const updateInTree = (nodes: FileNode[]): FileNode[] => {
-      return nodes.map(node => {
-        if (node.id === activeFile?.id) return { ...node, content: newCode }
-        if (node.children) return { ...node, children: updateInTree(node.children) }
-        return node
-      })
-    }
-    setFiles(updateInTree(files))
+    if (!db || !selectedId) return;
+    const docRef = doc(db, "projects", "main", "files", selectedId);
+    setDoc(docRef, { content: newCode }, { merge: true });
   }
 
   const handleTabClick = (id: string) => {
@@ -98,6 +105,9 @@ export default function IDEPage() {
     const newTabs = tabs.filter(t => t.id !== id)
     if (newTabs.length > 0 && !newTabs.some(t => t.active)) {
       newTabs[0].active = true
+      setSelectedId(newTabs[0].id)
+    } else if (newTabs.length === 0) {
+      setSelectedId(null)
     }
     setTabs(newTabs)
   }
@@ -111,60 +121,47 @@ export default function IDEPage() {
         icon: node.name.endsWith('.tsx') ? <FileCode className="h-4 w-4" /> : <FileText className="h-4 w-4" />, 
         active: true 
       }])
+      setSelectedId(node.id)
     } else {
       handleTabClick(node.id)
     }
   }
 
   const createFile = (name: string, content: string = '', parentId?: string) => {
-    const newNodeId = `${name}-${Date.now()}`
-    const newNode: FileNode = { id: newNodeId, name, type: 'file', content }
-    
-    if (parentId) {
-      const addToParent = (nodes: FileNode[]): FileNode[] => {
-        return nodes.map(node => {
-          if (node.id === parentId && node.type === 'folder') return { ...node, children: [...(node.children || []), newNode], isOpen: true }
-          if (node.children) return { ...node, children: addToParent(node.children) }
-          return node
-        })
-      }
-      setFiles(addToParent(files))
-    } else {
-      setFiles([...files, newNode])
-    }
-    openFile(newNode)
+    if (!db) return;
+    const fileId = `${name}-${Date.now()}`;
+    const docRef = doc(db, "projects", "main", "files", fileId);
+    setDoc(docRef, {
+      id: fileId,
+      name,
+      type: 'file',
+      content,
+      parentId: parentId || null,
+      updatedAt: serverTimestamp()
+    });
+    toast({ title: "Module Initialized", description: `File ${name} synchronized with cloud nodes.` });
   }
 
   const createFolder = (name: string, parentId?: string) => {
-    const newNodeId = `${name}-${Date.now()}`
-    const newNode: FileNode = { id: newNodeId, name, type: 'folder', children: [], isOpen: true }
-    
-    if (parentId) {
-      const addToParent = (nodes: FileNode[]): FileNode[] => {
-        return nodes.map(node => {
-          if (node.id === parentId && node.type === 'folder') return { ...node, children: [...(node.children || []), newNode], isOpen: true }
-          if (node.children) return { ...node, children: addToParent(node.children) }
-          return node
-        })
-      }
-      setFiles(addToParent(files))
-    } else {
-      setFiles([...files, newNode])
-    }
+    if (!db) return;
+    const folderId = `${name}-${Date.now()}`;
+    const docRef = doc(db, "projects", "main", "files", folderId);
+    setDoc(docRef, {
+      id: folderId,
+      name,
+      type: 'folder',
+      parentId: parentId || null,
+      updatedAt: serverTimestamp()
+    });
+    toast({ title: "Sector Created", description: `Memory cluster ${name} allocated.` });
   }
 
   const handleDelete = (id: string) => {
-    const removeFromTree = (nodes: FileNode[]): FileNode[] => {
-      return nodes
-        .filter(node => node.id !== id)
-        .map(node => ({
-          ...node,
-          children: node.children ? removeFromTree(node.children) : undefined
-        }))
-    }
-    setFiles(removeFromTree(files))
-    handleTabClose(id)
-    toast({ title: "Resource Terminated", description: "Memory segments cleared successfully.", variant: "destructive" })
+    if (!db) return;
+    const docRef = doc(db, "projects", "main", "files", id);
+    deleteDoc(docRef);
+    handleTabClose(id);
+    toast({ title: "Resource Terminated", description: "Memory segments cleared successfully.", variant: "destructive" });
   }
 
   const handleSaveToSystem = () => {
@@ -237,16 +234,7 @@ export default function IDEPage() {
 
   const handleWizardComplete = (template: any) => {
     toast({ title: "Project Initialized", description: `Creating ${template.name} workspace...` })
-    setFiles([...files, {
-      id: `proj-${Date.now()}`,
-      name: template.name.toLowerCase().replace(' ', '-'),
-      type: 'folder',
-      isOpen: true,
-      children: [
-        { id: `README-${Date.now()}`, name: 'README.md', type: 'file', content: `# ${template.name}\n\nGenerated by NEO CODE Wizard.` },
-        { id: `main-${Date.now()}`, name: 'main.js', type: 'file', content: '// Start coding here...' }
-      ]
-    }])
+    createFolder(template.name.toLowerCase().replace(' ', '-'));
     setIsWizardOpen(false)
   }
 
@@ -288,17 +276,12 @@ export default function IDEPage() {
         return <ProjectExplorer 
           searchQuery={searchQuery} 
           files={files} 
-          setFiles={setFiles} 
+          setFiles={() => {}} // Controlled by Firestore now
           selectedId={selectedId} 
           onSelect={(id) => {
             setSelectedId(id)
-            const findAndOpen = (nodes: FileNode[]) => {
-              nodes.forEach(n => {
-                if (n.id === id && n.type === 'file') openFile(n)
-                if (n.children) findAndOpen(n.children)
-              })
-            }
-            findAndOpen(files)
+            const node = remoteFiles?.find(f => f.id === id);
+            if (node && node.type === 'file') openFile(node)
           }} 
           onDelete={handleDelete}
         />
@@ -361,7 +344,7 @@ export default function IDEPage() {
                <AIAssistant 
                 currentFile={activeFile?.id}
                 currentCode={activeFile?.content}
-                fileList={files.map(f => f.name)}
+                fileList={remoteFiles?.map(f => f.name) || []}
                 onAction={(action) => {
                    if (action.type === 'createFile' && action.path) createFile(action.path, action.content)
                    if (action.type === 'createFolder' && action.path) createFolder(action.path)
