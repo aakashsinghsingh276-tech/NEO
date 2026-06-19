@@ -10,7 +10,7 @@ import { EditorTabs } from "@/components/ide/EditorTabs"
 import { CodeEditor, getLanguageFromFileName } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
-import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw, Layers, Database, Code2 } from "lucide-react"
+import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw, Layers, Database, Code2, Download } from "lucide-react"
 import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel, ProjectWizard } from "@/components/ide/FeaturePanels"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
@@ -28,13 +28,14 @@ export interface FileNode {
   children?: FileNode[]
   isOpen?: boolean
   content?: string
+  parentId?: string | null
 }
 
 export default function IDEPage() {
   const db = useFirestore();
   const { toast } = useToast()
   
-  // Real-time Files from Firestore (Simulating for a default project 'main')
+  // Real-time Files from Firestore
   const filesQuery = useMemoFirebase(() => {
     if (!db) return null;
     return collection(db, "projects", "main", "files");
@@ -129,7 +130,7 @@ export default function IDEPage() {
 
   const createFile = (name: string, content: string = '', parentId?: string) => {
     if (!db) return;
-    const fileId = `${name}-${Date.now()}`;
+    const fileId = `${name.replace(/\s+/g, '-')}-${Date.now()}`;
     const docRef = doc(db, "projects", "main", "files", fileId);
     setDoc(docRef, {
       id: fileId,
@@ -139,12 +140,12 @@ export default function IDEPage() {
       parentId: parentId || null,
       updatedAt: serverTimestamp()
     });
-    toast({ title: "Module Initialized", description: `File ${name} synchronized with cloud nodes.` });
+    toast({ title: "Module Initialized", description: `File ${name} synced to User Cloud.` });
   }
 
   const createFolder = (name: string, parentId?: string) => {
     if (!db) return;
-    const folderId = `${name}-${Date.now()}`;
+    const folderId = `${name.replace(/\s+/g, '-')}-${Date.now()}`;
     const docRef = doc(db, "projects", "main", "files", folderId);
     setDoc(docRef, {
       id: folderId,
@@ -161,7 +162,7 @@ export default function IDEPage() {
     const docRef = doc(db, "projects", "main", "files", id);
     deleteDoc(docRef);
     handleTabClose(id);
-    toast({ title: "Resource Terminated", description: "Memory segments cleared successfully.", variant: "destructive" });
+    toast({ title: "Resource Terminated", description: "Cloud data cleared successfully.", variant: "destructive" });
   }
 
   const handleSaveToSystem = () => {
@@ -175,14 +176,29 @@ export default function IDEPage() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-    toast({ title: "Local Save Successful", description: `File ${activeFile.name} mirrored to local storage.` })
+    toast({ title: "Local Save Successful", description: `File ${activeFile.name} downloaded.` })
+  }
+
+  const handleExportProject = () => {
+    if (!remoteFiles || remoteFiles.length === 0) return;
+    const projectData = JSON.stringify(remoteFiles, null, 2);
+    const blob = new Blob([projectData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `neo-code-project-export.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Project Exported", description: "Entire workspace manifest saved to local storage." });
   }
 
   const handleInstallLanguage = (id: string) => {
     toast({ title: "Fetching Runtime", description: `Synchronizing SDK for ${id.toUpperCase()}...` })
     setTimeout(() => {
       setInstalledLanguages(prev => [...prev, id])
-      toast({ title: "Runtime Active", description: `${id.toUpperCase()} SDK is now online.` })
+      toast({ title: "Runtime Active", description: `${id.toUpperCase()} SDK is now pre-installed.` })
     }, 2500)
   }
 
@@ -202,13 +218,16 @@ export default function IDEPage() {
       case 'save-as':
         handleSaveToSystem()
         break
+      case 'export-project':
+        handleExportProject()
+        break
       case 'start-debug':
       case 'run-without-debug':
         setIsPreviewOpen(true)
         toast({ title: "Quantum Compilation", description: "Spinning up sandbox environment...", duration: 2000 })
         break
       case 'save':
-        toast({ title: "Cloud Sync Complete", description: "Delta changes uploaded to neural nodes." })
+        toast({ title: "Cloud Sync Complete", description: "Workspace saved to internal database." })
         break
       case 'ai-assistant':
         setIsAiPanelOpen(!isAiPanelOpen)
@@ -223,10 +242,13 @@ export default function IDEPage() {
 
   const confirmCreate = () => {
     if (!newItemName) return
+    const parentNode = remoteFiles?.find(f => f.id === selectedId);
+    const parentId = parentNode?.type === 'folder' ? parentNode.id : undefined;
+    
     if (createType === 'file') {
-      createFile(newItemName, '', selectedId || undefined)
+      createFile(newItemName, '', parentId)
     } else {
-      createFolder(newItemName, selectedId || undefined)
+      createFolder(newItemName, parentId)
     }
     setNewItemName('')
     setIsCreateModalOpen(false)
@@ -276,7 +298,7 @@ export default function IDEPage() {
         return <ProjectExplorer 
           searchQuery={searchQuery} 
           files={files} 
-          setFiles={() => {}} // Controlled by Firestore now
+          setFiles={() => {}} 
           selectedId={selectedId} 
           onSelect={(id) => {
             setSelectedId(id)
@@ -439,6 +461,9 @@ export default function IDEPage() {
                       <p className="text-lg font-code text-slate-700 font-bold">200 OK - 2ms Latency</p>
                    </div>
                 </div>
+                <Button className="mt-8 gap-2 bg-primary text-black font-bold uppercase" onClick={handleSaveToSystem}>
+                  <Download className="h-4 w-4" /> Download This File
+                </Button>
              </div>
           </div>
         </div>

@@ -2,18 +2,19 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, ShieldAlert, AlertTriangle, CheckCircle2, Box, Download, Check, Info, Database, Server, Cpu, RefreshCw, HardDrive } from "lucide-react"
+import { Search, ShieldAlert, AlertTriangle, CheckCircle2, Box, Download, Check, Info, Database, Server, Cpu, RefreshCw, HardDrive, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 export function SearchSidebar({ searchQuery, onSearch }: { searchQuery: string, onSearch: (q: string) => void }) {
   const mockResults = useMemo(() => {
     if (!searchQuery) return []
     return [
-      { file: 'app.tsx', line: 12, match: `import { QuantumCore } from '@neocade/core';` },
+      { file: 'app.tsx', line: 12, match: `import { QuantumCore } from '@neocode/core';` },
       { file: 'app.tsx', line: 15, match: `const ai = new QuantumCore();` },
       { file: 'styles.css', line: 45, match: `--primary: #00BFFF;` },
     ].filter(r => r.match.toLowerCase().includes(searchQuery.toLowerCase()) || r.file.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -351,11 +352,30 @@ export function ExtensionsSidebar({ installed, onInstall }: { installed: string[
 }
 
 export function DatabaseSidebar() {
+  const { toast } = useToast()
   const [instances, setInstances] = useState([
-    { id: 'pg-1', name: 'Production-DB', type: 'PostgreSQL', status: 'Active', load: '12%' },
-    { id: 'mongo-1', name: 'User-Meta', type: 'MongoDB', status: 'Idle', load: '2%' },
-    { id: 'redis-1', name: 'Cache-Cluster', type: 'Redis', status: 'Active', load: '45%' },
+    { id: 'pg-1', name: 'Production-DB', type: 'PostgreSQL', status: 'Active', load: '12%', host: 'localhost:5432' },
+    { id: 'mongo-1', name: 'User-Meta', type: 'MongoDB', status: 'Idle', load: '2%', host: 'localhost:27017' },
+    { id: 'redis-1', name: 'Cache-Cluster', type: 'Redis', status: 'Active', load: '45%', host: 'localhost:6379' },
   ])
+
+  const addInstance = () => {
+    const newId = `db-${Date.now()}`
+    setInstances([...instances, { 
+      id: newId, 
+      name: `New-Cluster-${instances.length + 1}`, 
+      type: 'PostgreSQL', 
+      status: 'Active', 
+      load: '0%', 
+      host: 'localhost:5433' 
+    }])
+    toast({ title: "Database Initialized", description: "Successfully provisioned new cloud instance." })
+  }
+
+  const deleteInstance = (id: string) => {
+    setInstances(instances.filter(inst => inst.id !== id))
+    toast({ title: "Instance Terminated", description: "Cloud database cluster cleared.", variant: "destructive" })
+  }
 
   return (
     <div className="w-[260px] bg-sidebar/50 border-r border-border h-full flex flex-col">
@@ -364,14 +384,24 @@ export function DatabaseSidebar() {
         <Database className="h-4 w-4 text-primary" />
       </div>
       <div className="p-4 border-b border-border bg-black/10">
-        <Button variant="outline" className="w-full h-9 text-[10px] font-bold border-primary/20 text-primary hover:bg-primary/10 uppercase tracking-widest">
-          CONNECT NEW INSTANCE
+        <Button 
+          variant="outline" 
+          onClick={addInstance}
+          className="w-full h-9 text-[10px] font-bold border-primary/20 text-primary hover:bg-primary/10 uppercase tracking-widest gap-2"
+        >
+          <Plus className="h-3.5 w-3.5" /> SETUP NEW INSTANCE
         </Button>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           {instances.map(inst => (
-            <div key={inst.id} className="p-4 border border-white/5 bg-black/30 rounded-xl group hover:border-primary/40 transition-all cursor-pointer">
+            <div key={inst.id} className="p-4 border border-white/5 bg-black/30 rounded-xl group hover:border-primary/40 transition-all cursor-pointer relative">
+              <button 
+                onClick={(e) => { e.stopPropagation(); deleteInstance(inst.id); }}
+                className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Server className="h-3.5 w-3.5 text-primary" />
@@ -382,6 +412,7 @@ export function DatabaseSidebar() {
                   <span className="text-[9px] uppercase text-muted-foreground font-bold">{inst.status}</span>
                 </div>
               </div>
+              <p className="text-[9px] font-code text-muted-foreground mb-3">{inst.host}</p>
               <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
                  <div className="bg-black/40 p-1.5 rounded-md border border-white/5 flex flex-col">
                     <span className="text-[8px] text-muted-foreground uppercase mb-0.5">Engine</span>
@@ -400,7 +431,7 @@ export function DatabaseSidebar() {
           ))}
           <div className="p-6 border border-dashed border-white/10 rounded-xl text-center flex flex-col items-center justify-center opacity-40">
              <RefreshCw className="h-6 w-6 text-muted-foreground mb-2" />
-             <p className="text-[9px] uppercase font-bold tracking-widest">Refreshing Clusters...</p>
+             <p className="text-[9px] uppercase font-bold tracking-widest">Internal DB Active</p>
           </div>
         </div>
       </ScrollArea>

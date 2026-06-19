@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Search, Mic, Wifi, Battery, Maximize2, Cpu, File, Edit, Play, Terminal, HelpCircle, Layout, Globe, Shield, ChevronDown, Package, GitBranch, TerminalSquare, Settings2, Sparkles } from "lucide-react"
+import { Search, Mic, Wifi, Battery, Maximize2, Cpu, File, Edit, Play, Terminal, HelpCircle, Layout, Globe, Shield, ChevronDown, Package, GitBranch, TerminalSquare, Settings2, Sparkles, Download, Database } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -14,10 +14,11 @@ import {
 
 export function TopNav({ onSearch, onAction }: { onSearch?: (query: string) => void, onAction?: (action: string) => void }) {
   const menuItems = [
-    { label: 'File', icon: <File className="h-3 w-3" />, actions: ['new-file', 'new-folder', 'new-project', 'open-folder', 'save', 'save-as', 'delete'] },
+    { label: 'File', icon: <File className="h-3 w-3" />, actions: ['new-file', 'new-folder', 'new-project', 'save', 'save-as', 'export-project', 'delete'] },
     { label: 'Edit', icon: <Edit className="h-3 w-3" />, actions: ['undo', 'redo', 'cut', 'copy', 'paste', 'find-in-files'] },
     { label: 'Run', icon: <Play className="h-3 w-3" />, actions: ['start-debug', 'run-without-debug', 'attach-process', 'stop-debug'] },
     { label: 'Terminal', icon: <Terminal className="h-3 w-3" />, actions: ['new-terminal', 'split-terminal', 'kill-active'] },
+    { label: 'Database', icon: <Database className="h-3 w-3" />, actions: ['setup-db', 'view-clusters', 'query-history'] },
     { label: 'Quantum', icon: <Sparkles className="h-3 w-3" />, actions: ['entangle-workspace', 'simulate-qubits', 'ai-refactor-project'] },
     { label: 'Help', icon: <HelpCircle className="h-3 w-3" />, actions: ['about', 'documentation', 'keyboard-shortcuts'] }
   ]
@@ -76,14 +77,14 @@ export function TopNav({ onSearch, onAction }: { onSearch?: (query: string) => v
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-code bg-black/20 px-4 py-1.5 rounded-full border border-white/5">
           <Wifi className="h-4 w-4 text-primary animate-pulse" />
           <span className="text-primary font-bold">LIVE</span>
-          <span className="opacity-60">12:00:54</span>
+          <span className="opacity-60">CLOUD-ACTIVE</span>
         </div>
         <div className="flex items-center gap-3">
-           <Button variant="ghost" size="icon" className="h-9 w-9 hover:text-primary hover:bg-white/5 rounded-full">
-             <Settings2 className="h-4 w-4" />
+           <Button variant="ghost" size="icon" onClick={() => onAction?.('export-project')} className="h-9 w-9 hover:text-primary hover:bg-white/5 rounded-full" title="Export Project">
+             <Download className="h-4 w-4" />
            </Button>
            <Button variant="ghost" size="icon" className="h-9 w-9 hover:text-primary hover:bg-white/5 rounded-full">
-             <Maximize2 className="h-4 w-4" />
+             <Settings2 className="h-4 w-4" />
            </Button>
         </div>
       </div>
