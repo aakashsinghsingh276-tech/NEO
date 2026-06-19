@@ -250,6 +250,46 @@ export function ExtensionsSidebar({ installed, onInstall }: { installed: string[
     { id: 'php', name: 'PHP', version: 'v8.3', desc: 'Classic web server scripts.' },
     { id: 'cs', name: 'C#', version: 'v12', desc: 'Enterprise Windows & Games.' },
     { id: 'lua', name: 'Lua', version: 'v5.4', desc: 'Embedded game scripting.' },
+    { id: 'rb', name: 'Ruby', version: 'v3.3', desc: 'Productive web applications.' },
+    { id: 'r', name: 'R', version: 'v4.4', desc: 'Statistical computing and graphics.' },
+    { id: 'matlab', name: 'MATLAB', version: 'v2024a', desc: 'Matrix-based language for engineers.' },
+    { id: 'hs', name: 'Haskell', version: 'v9.8', desc: 'Purely functional programming.' },
+    { id: 'scala', name: 'Scala', version: 'v3.4', desc: 'Object-oriented meets functional.' },
+    { id: 'perl', name: 'Perl', version: 'v5.38', desc: 'Highly capable, feature-rich language.' },
+    { id: 'objc', name: 'Objective-C', version: 'v2.0', desc: 'Classic Apple ecosystem language.' },
+    { id: 'vb', name: 'Visual Basic', version: 'v16', desc: 'User-friendly Windows development.' },
+    { id: 'sql', name: 'SQL', version: 'Standard 2023', desc: 'Relational database management.' },
+    { id: 'asm', name: 'Assembly x86', version: 'v2.4', desc: 'Low-level hardware control.' },
+    { id: 'fortran', name: 'Fortran', version: 'v2023', desc: 'Scientific and numerical computing.' },
+    { id: 'cobol', name: 'COBOL', version: 'v2023', desc: 'Enterprise business systems.' },
+    { id: 'pas', name: 'Pascal', version: 'v3.2', desc: 'Structured programming classic.' },
+    { id: 'ada', name: 'Ada', version: 'v2022', desc: 'Safety-critical software systems.' },
+    { id: 'lisp', name: 'Common Lisp', version: 'v1.5', desc: 'Powerful dynamic language.' },
+    { id: 'scm', name: 'Scheme', version: 'v7', desc: 'Minimalist Lisp dialect.' },
+    { id: 'pl', name: 'Prolog', version: 'v9.2', desc: 'Logic programming for AI.' },
+    { id: 'erl', name: 'Erlang', version: 'v26', desc: 'Massively scalable concurrency.' },
+    { id: 'ex', name: 'Elixir', version: 'v1.16', desc: 'Reliable distributed systems.' },
+    { id: 'clj', name: 'Clojure', version: 'v1.12', desc: 'Modern Lisp on the JVM.' },
+    { id: 'fs', name: 'F#', version: 'v8', desc: 'Succinct functional-first language.' },
+    { id: 'groovy', name: 'Groovy', version: 'v4', desc: 'Dynamic Java-based syntax.' },
+    { id: 'sh', name: 'Bash Shell', version: 'v5.2', desc: 'System scripting and automation.' },
+    { id: 'ps1', name: 'PowerShell', version: 'v7.4', desc: 'Cross-platform task automation.' },
+    { id: 'zig', name: 'Zig', version: 'v0.12', desc: 'Robust low-level programming.' },
+    { id: 'nim', name: 'Nim', version: 'v2.0', desc: 'Efficient compiled language.' },
+    { id: 'cr', name: 'Crystal', version: 'v1.11', desc: 'C-like speed, Ruby-like syntax.' },
+    { id: 'd', name: 'D', version: 'v2.107', desc: 'Modern system programming.' },
+    { id: 'val', name: 'Vala', version: 'v0.56', desc: 'C-based language with GNOME.' },
+    { id: 'coffee', name: 'CoffeeScript', version: 'v2.7', desc: 'Succinct JavaScript dialect.' },
+    { id: 'elm', name: 'Elm', version: 'v0.19', desc: 'Safe browser-based web apps.' },
+    { id: 'hx', name: 'Haxe', version: 'v4.3', desc: 'Cross-platform toolkit.' },
+    { id: 'jl', name: 'Julia', version: 'v1.10', desc: 'High-performance math computing.' },
+    { id: 'fth', name: 'Forth', version: 'v0.7', desc: 'Stack-based system language.' },
+    { id: 'kt', name: 'Kotlin', version: 'v1.9', desc: 'Modern Android and JVM.' },
+    { id: 'swift', name: 'Swift', version: 'v5.10', desc: 'Modern Apple development.' },
+    { id: 'dart', name: 'Dart', version: 'v3.3', desc: 'Client-optimized multi-platform.' },
+    { id: 'cl', name: 'OpenCL', version: 'v3.0', desc: 'Heterogeneous computing.' },
+    { id: 'v', name: 'Verilog', version: 'v2005', desc: 'Hardware description language.' },
+    { id: 'vhdl', name: 'VHDL', version: 'v2008', desc: 'Electronics system design.' }
   ]
 
   const [search, setSearch] = useState('')
@@ -263,7 +303,7 @@ export function ExtensionsSidebar({ installed, onInstall }: { installed: string[
           <Input 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search extensions..." 
+            placeholder="Search 50+ extensions..." 
             className="h-9 text-xs bg-black/40 border-white/10 pl-9"
           />
           <Box className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />

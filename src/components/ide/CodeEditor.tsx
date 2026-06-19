@@ -74,6 +74,64 @@ export const getLanguageFromFileName = (name: string) => {
       return 'yaml'
     case 'xml':
       return 'xml'
+    case 'r':
+      return 'r'
+    case 'm':
+      return 'objective-c'
+    case 'hs':
+      return 'haskell'
+    case 'scala':
+      return 'scala'
+    case 'pl':
+      return 'perl'
+    case 'vb':
+      return 'vb'
+    case 'f90':
+    case 'f':
+      return 'fortran'
+    case 'cbl':
+    case 'cob':
+      return 'cobol'
+    case 'pas':
+      return 'pascal'
+    case 'ada':
+      return 'ada'
+    case 'lisp':
+    case 'cl':
+      return 'lisp'
+    case 'scm':
+      return 'scheme'
+    case 'erl':
+      return 'erlang'
+    case 'ex':
+    case 'exs':
+      return 'elixir'
+    case 'clj':
+      return 'clojure'
+    case 'fs':
+      return 'fsharp'
+    case 'groovy':
+      return 'groovy'
+    case 'ps1':
+      return 'powershell'
+    case 'zig':
+      return 'zig'
+    case 'nim':
+      return 'nim'
+    case 'cr':
+      return 'crystal'
+    case 'd':
+      return 'd'
+    case 'val':
+      return 'vala'
+    case 'coffee':
+      return 'coffeescript'
+    case 'elm':
+      return 'elm'
+    case 'hx':
+      return 'haxe'
+    case 'jl':
+      return 'julia'
     default:
       return 'plaintext'
   }
