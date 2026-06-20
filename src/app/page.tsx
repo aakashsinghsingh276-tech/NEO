@@ -262,7 +262,12 @@ export default function IDEPage() {
   const confirmCreate = () => {
     if (!newItemName) return
     const parentNode = remoteFiles?.find(f => f.id === selectedId);
-    const parentId = parentNode?.type === 'folder' ? parentNode.id : undefined;
+    // If the selected item is a folder, create inside it.
+    // Otherwise, find the selected item's parent and create sibling.
+    let parentId = null;
+    if (parentNode) {
+      parentId = parentNode.type === 'folder' ? parentNode.id : parentNode.parentId;
+    }
     
     if (createType === 'file') {
       createFile(newItemName, '', parentId)
