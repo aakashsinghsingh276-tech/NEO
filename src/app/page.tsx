@@ -202,6 +202,22 @@ export default function IDEPage() {
     }, 2500)
   }
 
+  const handleInstallAllLanguages = () => {
+    toast({ title: "Mass Neural Sync", description: "Installing all 50+ language runtimes..." });
+    setTimeout(() => {
+      const allLangs = [
+        'js', 'ts', 'py', 'java', 'cpp', 'go', 'rs', 'php', 'cs', 'lua', 
+        'rb', 'r', 'matlab', 'hs', 'scala', 'pl', 'objc', 'vb', 'sql', 
+        'asm', 'fortran', 'cobol', 'pas', 'ada', 'lisp', 'scm', 'erl', 
+        'ex', 'clj', 'fs', 'groovy', 'sh', 'ps1', 'zig', 'nim', 'cr', 
+        'd', 'val', 'coffee', 'elm', 'hx', 'jl', 'fth', 'kt', 'swift', 
+        'dart', 'cl', 'v', 'vhdl'
+      ];
+      setInstalledLanguages(allLangs);
+      toast({ title: "Sync Complete", description: "Full polyglot engine active." });
+    }, 3000);
+  }
+
   const handleFileAction = (action: string) => {
     switch(action) {
       case 'new-file':
@@ -220,6 +236,9 @@ export default function IDEPage() {
         break
       case 'export-project':
         handleExportProject()
+        break
+      case 'install-all-languages':
+        handleInstallAllLanguages()
         break
       case 'start-debug':
       case 'run-without-debug':
@@ -306,6 +325,7 @@ export default function IDEPage() {
             if (node && node.type === 'file') openFile(node)
           }} 
           onDelete={handleDelete}
+          onCreate={(type) => handleFileAction(type === 'file' ? 'new-file' : 'new-folder')}
         />
       case 'search':
         return <SearchSidebar searchQuery={searchQuery} onSearch={setSearchQuery} />

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { ChevronDown, ChevronRight, File, Folder, FolderOpen, Trash2, Plus, FilePlus } from "lucide-react"
@@ -74,13 +75,14 @@ function TreeNode({
   )
 }
 
-export function ProjectExplorer({ searchQuery = '', files, setFiles, selectedId, onSelect, onDelete }: { 
+export function ProjectExplorer({ searchQuery = '', files, setFiles, selectedId, onSelect, onDelete, onCreate }: { 
   searchQuery?: string,
   files: FileNode[],
   setFiles: (f: FileNode[]) => void,
   selectedId: string | null,
   onSelect: (id: string) => void,
-  onDelete: (id: string) => void
+  onDelete: (id: string) => void,
+  onCreate: (type: 'file' | 'folder') => void
 }) {
 
   const handleToggleFolder = (id: string) => {
@@ -115,8 +117,20 @@ export function ProjectExplorer({ searchQuery = '', files, setFiles, selectedId,
       <div className="p-3 border-b border-border flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Explorer</span>
         <div className="flex gap-2 text-muted-foreground">
-          <Plus className="h-3.5 w-3.5 hover:text-primary cursor-pointer" title="New Folder Tool (Use File Menu)" />
-          <FilePlus className="h-3.5 w-3.5 hover:text-primary cursor-pointer" title="New File Tool (Use File Menu)" />
+          <button 
+            onClick={() => onCreate('folder')} 
+            className="hover:text-primary transition-colors" 
+            title="New Folder"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+          <button 
+            onClick={() => onCreate('file')} 
+            className="hover:text-primary transition-colors" 
+            title="New File"
+          >
+            <FilePlus className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
       <div className="p-2 overflow-y-auto custom-scrollbar flex-1">

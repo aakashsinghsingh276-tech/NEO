@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Search, Mic, Wifi, Battery, Maximize2, Cpu, File, Edit, Play, Terminal, HelpCircle, Layout, Globe, Shield, ChevronDown, Package, GitBranch, TerminalSquare, Settings2, Sparkles, Download, Database } from "lucide-react"
+import { Search, Mic, Wifi, Battery, Maximize2, Cpu, File, Edit, Play, Terminal, HelpCircle, Layout, Globe, Shield, ChevronDown, Package, GitBranch, TerminalSquare, Settings2, Sparkles, Download, Database, Box } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export function TopNav({ onSearch, onAction }: { onSearch?: (query: string) => void, onAction?: (action: string) => void }) {
   const menuItems = [
@@ -80,9 +81,42 @@ export function TopNav({ onSearch, onAction }: { onSearch?: (query: string) => v
           <span className="opacity-60">CLOUD-ACTIVE</span>
         </div>
         <div className="flex items-center gap-3">
-           <Button variant="ghost" size="icon" onClick={() => onAction?.('export-project')} className="h-9 w-9 hover:text-primary hover:bg-white/5 rounded-full" title="Export Project">
-             <Download className="h-4 w-4" />
-           </Button>
+           <TooltipProvider>
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <Button 
+                   variant="ghost" 
+                   size="icon" 
+                   onClick={() => onAction?.('install-all-languages')} 
+                   className="h-9 w-9 hover:text-primary hover:bg-white/5 rounded-full text-accent"
+                 >
+                   <Box className="h-4 w-4" />
+                 </Button>
+               </TooltipTrigger>
+               <TooltipContent className="text-[10px] uppercase font-bold tracking-widest bg-popover border-border">
+                 Sync All Language SDKs
+               </TooltipContent>
+             </Tooltip>
+           </TooltipProvider>
+
+           <TooltipProvider>
+             <Tooltip>
+               <TooltipTrigger asChild>
+                 <Button 
+                   variant="ghost" 
+                   size="icon" 
+                   onClick={() => onAction?.('export-project')} 
+                   className="h-9 w-9 hover:text-primary hover:bg-white/5 rounded-full"
+                 >
+                   <Download className="h-4 w-4" />
+                 </Button>
+               </TooltipTrigger>
+               <TooltipContent className="text-[10px] uppercase font-bold tracking-widest bg-popover border-border">
+                 Export Workspace
+               </TooltipContent>
+             </Tooltip>
+           </TooltipProvider>
+
            <Button variant="ghost" size="icon" className="h-9 w-9 hover:text-primary hover:bg-white/5 rounded-full">
              <Settings2 className="h-4 w-4" />
            </Button>
