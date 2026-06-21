@@ -47,6 +47,8 @@ export default function IDEPage() {
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(true)
   const [terminalHeight, setTerminalHeight] = useState(300)
   const [isDraggingTerminal, setIsDraggingTerminal] = useState(false)
+  const [aiSidebarWidth, setAiSidebarWidth] = useState(380)
+  const [isDraggingAiSidebar, setIsDraggingAiSidebar] = useState(false)
   
   // Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -255,17 +257,17 @@ export default function IDEPage() {
     setIsCreateModalOpen(false)
   }
 
-  // Resizing Logic
-  const startDragging = useCallback((e: React.MouseEvent) => {
+  // Resizing Logic for Terminal
+  const startDraggingTerminal = useCallback((e: React.MouseEvent) => {
     setIsDraggingTerminal(true)
     e.preventDefault()
   }, [])
 
-  const stopDragging = useCallback(() => {
+  const stopDraggingTerminal = useCallback(() => {
     setIsDraggingTerminal(false)
   }, [])
 
-  const onDrag = useCallback((e: MouseEvent) => {
+  const onDragTerminal = useCallback((e: MouseEvent) => {
     if (!isDraggingTerminal) return
     const newHeight = window.innerHeight - e.clientY
     if (newHeight > 100 && newHeight < window.innerHeight - 200) {
@@ -273,19 +275,51 @@ export default function IDEPage() {
     }
   }, [isDraggingTerminal])
 
+  // Resizing Logic for AI Sidebar
+  const startDraggingAiSidebar = useCallback((e: React.MouseEvent) => {
+    setIsDraggingAiSidebar(true)
+    e.preventDefault()
+  }, [])
+
+  const stopDraggingAiSidebar = useCallback(() => {
+    setIsDraggingAiSidebar(false)
+  }, [])
+
+  const onDragAiSidebar = useCallback((e: MouseEvent) => {
+    if (!isDraggingAiSidebar) return
+    const newWidth = window.innerWidth - e.clientX
+    if (newWidth > 250 && newWidth < 800) {
+      setAiSidebarWidth(newWidth)
+    }
+  }, [isDraggingAiSidebar])
+
   useEffect(() => {
     if (isDraggingTerminal) {
-      window.addEventListener('mousemove', onDrag)
-      window.addEventListener('mouseup', stopDragging)
+      window.addEventListener('mousemove', onDragTerminal)
+      window.addEventListener('mouseup', stopDraggingTerminal)
     } else {
-      window.removeEventListener('mousemove', onDrag)
-      window.removeEventListener('mouseup', stopDragging)
+      window.removeEventListener('mousemove', onDragTerminal)
+      window.removeEventListener('mouseup', stopDraggingTerminal)
     }
     return () => {
-      window.removeEventListener('mousemove', onDrag)
-      window.removeEventListener('mouseup', stopDragging)
+      window.removeEventListener('mousemove', onDragTerminal)
+      window.removeEventListener('mouseup', stopDraggingTerminal)
     }
-  }, [isDraggingTerminal, onDrag, stopDragging])
+  }, [isDraggingTerminal, onDragTerminal, stopDraggingTerminal])
+
+  useEffect(() => {
+    if (isDraggingAiSidebar) {
+      window.addEventListener('mousemove', onDragAiSidebar)
+      window.addEventListener('mouseup', stopDraggingAiSidebar)
+    } else {
+      window.removeEventListener('mousemove', onDragAiSidebar)
+      window.removeEventListener('mouseup', stopDraggingAiSidebar)
+    }
+    return () => {
+      window.removeEventListener('mousemove', onDragAiSidebar)
+      window.removeEventListener('mouseup', stopDraggingAiSidebar)
+    }
+  }, [isDraggingAiSidebar, onDragAiSidebar, stopDraggingAiSidebar])
 
   if (authLoading) {
     return (
@@ -340,7 +374,16 @@ export default function IDEPage() {
                <CodeEditor code={activeFile?.content || ''} fileName={activeFile?.name || 'app.tsx'} onChange={handleUpdateCode} />
              </div>}
             
-            <div className={`transition-all duration-300 border-l border-border/50 bg-sidebar/30 ${isAiPanelOpen ? 'w-[380px]' : 'w-0 overflow-hidden'}`}>
+            <div 
+              style={{ width: isAiPanelOpen ? `${aiSidebarWidth}px` : '0px' }}
+              className="transition-all duration-300 border-l border-border/50 bg-sidebar/30 relative overflow-hidden shrink-0"
+            >
+               {isAiPanelOpen && (
+                 <div 
+                   onMouseDown={startDraggingAiSidebar}
+                   className="absolute left-0 top-0 bottom-0 w-1 bg-border/20 hover:bg-primary/50 cursor-col-resize transition-colors z-50 group"
+                 />
+               )}
                <AIAssistant 
                 currentFile={activeFile?.id}
                 currentCode={activeFile?.content}
@@ -355,7 +398,7 @@ export default function IDEPage() {
             </div>
           </div>
           
-          <div onMouseDown={startDragging} className="h-1 bg-border/20 hover:bg-primary/50 cursor-row-resize transition-colors z-50 relative group" />
+          <div onMouseDown={startDraggingTerminal} className="h-1 bg-border/20 hover:bg-primary/50 cursor-row-resize transition-colors z-50 relative group" />
           <TerminalView activeFile={activeFile?.name} height={terminalHeight} />
         </div>
       </div>
