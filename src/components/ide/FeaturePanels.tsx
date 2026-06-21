@@ -7,6 +7,7 @@ import { Cuboid, Activity, ShieldAlert, Cpu, Sparkles, Zap, BrainCircuit, Rocket
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from "recharts"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 const analyticsData = [

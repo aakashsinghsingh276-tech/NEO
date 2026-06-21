@@ -10,7 +10,7 @@ import { EditorTabs } from "@/components/ide/EditorTabs"
 import { CodeEditor, getLanguageFromFileName } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
-import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw, Layers, Database, Code2, Download, LogIn, Github } from "lucide-react"
+import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw, Layers, Database, Code2, Download, LogIn, Github, Info } from "lucide-react"
 import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel, ProjectWizard } from "@/components/ide/FeaturePanels"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
@@ -24,6 +24,7 @@ import { useMemoFirebase } from "@/firebase/firestore/use-memo-firebase"
 import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export interface FileNode {
   id: string
@@ -41,22 +42,11 @@ export default function IDEPage() {
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast()
   
-  // Real-time Files from Firestore - scoped to USER
-  const filesQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return collection(db, "users", user.uid, "files");
-  }, [db, user]);
-  
-  const { data: remoteFiles, loading: filesLoading } = useCollection<any>(filesQuery);
-
   const [activeSidebarTab, setActiveSidebarTab] = useState('explorer')
   const [tabs, setTabs] = useState<{id: string, name: string, icon: any, active: boolean}[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(true)
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
-  const [installedLanguages, setInstalledLanguages] = useState<string[]>(['js', 'ts', 'py'])
-  const [activeModel, setActiveModel] = useState('DeepSeek-V3')
   const [terminalHeight, setTerminalHeight] = useState(300)
   const [isDraggingTerminal, setIsDraggingTerminal] = useState(false)
   
@@ -66,19 +56,22 @@ export default function IDEPage() {
   const [createType, setCreateType] = useState<'file' | 'folder'>('file')
   const [newItemName, setNewItemName] = useState('')
 
+  // Real-time Files from Firestore - scoped to USER
+  const filesQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return collection(db, "users", user.uid, "files");
+  }, [db, user]);
+  
+  const { data: remoteFiles, loading: filesLoading } = useCollection<any>(filesQuery);
+
   // Construct Tree from Flat List
   const files = useMemo(() => {
-    if (!remoteFiles || remoteFiles.length === 0) {
-      return [];
-    }
-    
+    if (!remoteFiles || remoteFiles.length === 0) return [];
     const tree: FileNode[] = [];
     const map: Record<string, FileNode> = {};
-    
     remoteFiles.forEach(f => {
       map[f.id] = { ...f, children: f.type === 'folder' ? [] : undefined };
     });
-    
     remoteFiles.forEach(f => {
       if (f.parentId && map[f.parentId]) {
         map[f.parentId].children?.push(map[f.id]);
@@ -86,7 +79,6 @@ export default function IDEPage() {
         tree.push(map[f.id]);
       }
     });
-    
     return tree;
   }, [remoteFiles]);
 
@@ -113,8 +105,21 @@ export default function IDEPage() {
     try {
       await signInWithPopup(auth, provider);
       toast({ title: "Neural Link Established", description: "Successfully authenticated with Quantum Cloud." });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Authentication Failed", description: "Could not sync with Google services." });
+    } catch (err: any) {
+      console.error("Auth Error:", err);
+      let errorMessage = "Could not sync with Google services.";
+      
+      if (err.code === 'auth/invalid-action-code') {
+        errorMessage = "Invalid action. Please ensure Google Sign-In is enabled in Firebase Console and this domain is authorized.";
+      } else if (err.code === 'auth/unauthorized-domain') {
+        errorMessage = "Unauthorized domain. Add this URL to 'Authorized Domains' in Firebase Authentication settings.";
+      }
+
+      toast({ 
+        variant: "destructive", 
+        title: "Authentication Failed", 
+        description: errorMessage 
+      });
     }
   }
 
@@ -314,6 +319,15 @@ export default function IDEPage() {
              <h1 className="text-4xl font-headline font-bold text-foreground mb-3 tracking-tighter">NEO CODE</h1>
              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-80">Quantum Intelligence IDE V1.0</p>
            </div>
+           
+           <Alert variant="default" className="bg-primary/5 border-primary/20 text-muted-foreground text-left">
+             <Info className="h-4 w-4 text-primary" />
+             <AlertTitle className="text-[10px] font-bold text-primary uppercase tracking-widest">Setup Required</AlertTitle>
+             <AlertDescription className="text-[11px] leading-relaxed">
+               Ensure <b>Google Sign-In</b> is enabled in Firebase Console and this domain is added to <b>Authorized Domains</b>.
+             </AlertDescription>
+           </Alert>
+
            <p className="text-sm text-muted-foreground leading-relaxed">
              Sign in to sync your professional workspace across spatial planes and access the Quantum AI Core.
            </p>
@@ -354,7 +368,7 @@ export default function IDEPage() {
       case 'run': return <DebugSidebar />
       case 'security': return <SecuritySidebar />
       case 'database': return <DatabaseSidebar />
-      case 'extensions': return <ExtensionsSidebar installed={installedLanguages} onInstall={(id) => setInstalledLanguages(p => [...p, id])} />
+      case 'extensions': return <ExtensionsSidebar installed={['js', 'ts', 'py']} onInstall={() => {}} />
       default: return null
     }
   }
@@ -418,7 +432,7 @@ export default function IDEPage() {
         </div>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm"><div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> NEURAL-LINK: ACTIVE</div>
-          <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm"><Code2 className="h-3 w-3" /> MODEL: {activeModel}</div>
+          <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm"><Code2 className="h-3 w-3" /> MODEL: DeepSeek-V3</div>
         </div>
       </footer>
       <Toaster />
