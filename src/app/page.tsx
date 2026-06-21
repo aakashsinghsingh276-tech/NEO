@@ -7,24 +7,22 @@ import { TopNav } from "@/components/ide/TopNav"
 import { ProjectExplorer } from "@/components/ide/ProjectExplorer"
 import { SearchSidebar, GitSidebar, DebugSidebar, SecuritySidebar, ExtensionsSidebar, DatabaseSidebar } from "@/components/ide/SidebarViews"
 import { EditorTabs } from "@/components/ide/EditorTabs"
-import { CodeEditor, getLanguageFromFileName } from "@/components/ide/CodeEditor"
+import { CodeEditor } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
-import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw, Layers, Database, Code2, Download, LogIn, Github, Info } from "lucide-react"
+import { FileCode, FileText, Globe, RefreshCw, Layers, Code2, Download, LogIn, Github, Info } from "lucide-react"
 import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel, ProjectWizard } from "@/components/ide/FeaturePanels"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { useFirestore, useCollection, useUser, useAuth } from "@/firebase"
-import { collection, doc, setDoc, deleteDoc, query, where, serverTimestamp } from "firebase/firestore"
+import { collection, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore"
 import { useMemoFirebase } from "@/firebase/firestore/use-memo-firebase"
 import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth"
 import { errorEmitter } from "@/firebase/error-emitter"
 import { FirestorePermissionError } from "@/firebase/errors"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export interface FileNode {
   id: string
@@ -56,11 +54,14 @@ export default function IDEPage() {
   const [createType, setCreateType] = useState<'file' | 'folder'>('file')
   const [newItemName, setNewItemName] = useState('')
 
-  // Real-time Files from Firestore - scoped to USER
+  // Determine current workspace ID (User UID or 'guest')
+  const workspaceId = user?.uid || 'guest-workspace';
+
+  // Real-time Files from Firestore
   const filesQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return collection(db, "users", user.uid, "files");
-  }, [db, user]);
+    if (!db) return null;
+    return collection(db, "users", workspaceId, "files");
+  }, [db, workspaceId]);
   
   const { data: remoteFiles, loading: filesLoading } = useCollection<any>(filesQuery);
 
@@ -88,8 +89,8 @@ export default function IDEPage() {
   }, [remoteFiles, selectedId]);
 
   const handleUpdateCode = (newCode: string) => {
-    if (!db || !selectedId || !user) return;
-    const docRef = doc(db, "users", user.uid, "files", selectedId);
+    if (!db || !selectedId) return;
+    const docRef = doc(db, "users", workspaceId, "files", selectedId);
     setDoc(docRef, { content: newCode }, { merge: true })
       .catch(async () => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -107,18 +108,10 @@ export default function IDEPage() {
       toast({ title: "Neural Link Established", description: "Successfully authenticated with Quantum Cloud." });
     } catch (err: any) {
       console.error("Auth Error:", err);
-      let errorMessage = "Could not sync with Google services.";
-      
-      if (err.code === 'auth/invalid-action-code') {
-        errorMessage = "Invalid action. Please ensure Google Sign-In is enabled in Firebase Console and this domain is authorized.";
-      } else if (err.code === 'auth/unauthorized-domain') {
-        errorMessage = "Unauthorized domain. Add this URL to 'Authorized Domains' in Firebase Authentication settings.";
-      }
-
       toast({ 
         variant: "destructive", 
         title: "Authentication Failed", 
-        description: errorMessage 
+        description: "Could not sync with Google services." 
       });
     }
   }
@@ -162,9 +155,9 @@ export default function IDEPage() {
   }
 
   const createFile = (name: string, content: string = '', parentId?: string) => {
-    if (!db || !user) return;
+    if (!db) return;
     const fileId = `${name.replace(/\s+/g, '-')}-${Date.now()}`;
-    const docRef = doc(db, "users", user.uid, "files", fileId);
+    const docRef = doc(db, "users", workspaceId, "files", fileId);
     setDoc(docRef, {
       id: fileId,
       name,
@@ -179,13 +172,13 @@ export default function IDEPage() {
         requestResourceData: { name, type: 'file' }
       }));
     });
-    toast({ title: "Module Initialized", description: `File ${name} synced to Cloud.` });
+    toast({ title: "Module Initialized", description: `File ${name} added.` });
   }
 
   const createFolder = (name: string, parentId?: string) => {
-    if (!db || !user) return;
+    if (!db) return;
     const folderId = `${name.replace(/\s+/g, '-')}-${Date.now()}`;
-    const docRef = doc(db, "users", user.uid, "files", folderId);
+    const docRef = doc(db, "users", workspaceId, "files", folderId);
     setDoc(docRef, {
       id: folderId,
       name,
@@ -199,12 +192,12 @@ export default function IDEPage() {
         requestResourceData: { name, type: 'folder' }
       }));
     });
-    toast({ title: "Sector Created", description: `Memory cluster ${name} allocated.` });
+    toast({ title: "Sector Created", description: `Folder ${name} created.` });
   }
 
   const handleDelete = (id: string) => {
-    if (!db || !user) return;
-    const docRef = doc(db, "users", user.uid, "files", id);
+    if (!db) return;
+    const docRef = doc(db, "users", workspaceId, "files", id);
     deleteDoc(docRef).catch(async () => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
         path: docRef.path,
@@ -212,14 +205,10 @@ export default function IDEPage() {
       }));
     });
     handleTabClose(id);
-    toast({ title: "Resource Terminated", description: "Cloud data cleared successfully.", variant: "destructive" });
+    toast({ title: "Resource Terminated", description: "Resource deleted.", variant: "destructive" });
   }
 
   const handleFileAction = (action: string) => {
-    if (!user && action !== 'about') {
-       handleLogin();
-       return;
-    }
     switch(action) {
       case 'new-file':
         setCreateType('file')
@@ -233,13 +222,16 @@ export default function IDEPage() {
         setIsWizardOpen(true)
         break
       case 'save':
-        toast({ title: "Cloud Sync Complete", description: "Workspace saved to internal database." })
+        toast({ title: "Cloud Sync Complete", description: "Workspace saved." })
         break
       case 'ai-assistant':
         setIsAiPanelOpen(!isAiPanelOpen)
         break
       case 'delete':
         if (selectedId) handleDelete(selectedId)
+        break
+      case 'install-all-languages':
+        toast({ title: "Polyglot Engine Sync", description: "Synchronizing all 50+ language runtimes..." })
         break
       default:
         console.log("Action not implemented", action)
@@ -298,79 +290,10 @@ export default function IDEPage() {
   if (authLoading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-primary gap-4">
-        <div className="relative">
-          <div className="absolute inset-0 bg-primary/20 blur-2xl animate-pulse rounded-full" />
-          <RefreshCw className="h-12 w-12 animate-spin relative z-10" />
-        </div>
+        <RefreshCw className="h-12 w-12 animate-spin" />
         <p className="text-[10px] font-bold tracking-[0.4em] uppercase animate-pulse">Synchronizing Neural Workspace...</p>
       </div>
     )
-  }
-
-  if (!user) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-background relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,191,255,0.05)_0%,transparent_70%)]" />
-        <Card className="glass-panel p-12 w-full max-w-md text-center flex flex-col items-center gap-8 relative z-10 rounded-3xl border-primary/20 shadow-[0_0_100px_rgba(0,191,255,0.1)]">
-           <div className="h-20 w-20 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/30 group hover:rotate-90 transition-all duration-500">
-             <Code2 className="h-10 w-10 text-primary drop-shadow-[0_0_10px_#00BFFF]" />
-           </div>
-           <div>
-             <h1 className="text-4xl font-headline font-bold text-foreground mb-3 tracking-tighter">NEO CODE</h1>
-             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-80">Quantum Intelligence IDE V1.0</p>
-           </div>
-           
-           <Alert variant="default" className="bg-primary/5 border-primary/20 text-muted-foreground text-left">
-             <Info className="h-4 w-4 text-primary" />
-             <AlertTitle className="text-[10px] font-bold text-primary uppercase tracking-widest">Setup Required</AlertTitle>
-             <AlertDescription className="text-[11px] leading-relaxed">
-               Ensure <b>Google Sign-In</b> is enabled in Firebase Console and this domain is added to <b>Authorized Domains</b>.
-             </AlertDescription>
-           </Alert>
-
-           <p className="text-sm text-muted-foreground leading-relaxed">
-             Sign in to sync your professional workspace across spatial planes and access the Quantum AI Core.
-           </p>
-           <div className="flex flex-col gap-3 w-full">
-             <Button onClick={handleLogin} className="w-full h-12 gap-3 bg-primary text-black font-bold uppercase text-xs tracking-widest shadow-[0_0_20px_rgba(0,191,255,0.3)] hover:scale-105 transition-all">
-               <LogIn className="h-4 w-4" /> Start Neural Session
-             </Button>
-             <Button variant="outline" className="w-full h-12 gap-3 border-white/10 hover:bg-white/5 font-bold uppercase text-xs tracking-widest">
-               <Github className="h-4 w-4" /> Open Source Access
-             </Button>
-           </div>
-           <p className="text-[9px] text-muted-foreground uppercase tracking-tighter opacity-50">
-             SECURE QUANTUM LINK | AES-4096 ENCRYPTED
-           </p>
-        </Card>
-      </div>
-    )
-  }
-
-  const renderSidebarView = () => {
-    switch(activeSidebarTab) {
-      case 'explorer':
-        return <ProjectExplorer 
-          searchQuery={searchQuery} 
-          files={files} 
-          setFiles={() => {}} 
-          selectedId={selectedId} 
-          onSelect={(id) => {
-            setSelectedId(id)
-            const node = remoteFiles?.find(f => f.id === id);
-            if (node && node.type === 'file') openFile(node)
-          }} 
-          onDelete={handleDelete}
-          onCreate={(type) => handleFileAction(type === 'file' ? 'new-file' : 'new-folder')}
-        />
-      case 'search': return <SearchSidebar searchQuery={searchQuery} onSearch={setSearchQuery} />
-      case 'git': return <GitSidebar />
-      case 'run': return <DebugSidebar />
-      case 'security': return <SecuritySidebar />
-      case 'database': return <DatabaseSidebar />
-      case 'extensions': return <ExtensionsSidebar installed={['js', 'ts', 'py']} onInstall={() => {}} />
-      default: return null
-    }
   }
 
   return (
@@ -379,7 +302,33 @@ export default function IDEPage() {
       
       <div className="flex-1 flex overflow-hidden">
         <Sidebar activeId={activeSidebarTab} onActiveChange={setActiveSidebarTab} />
-        {renderSidebarView()}
+        {activeSidebarTab === 'explorer' ? (
+          <ProjectExplorer 
+            searchQuery={searchQuery} 
+            files={files} 
+            setFiles={() => {}} 
+            selectedId={selectedId} 
+            onSelect={(id) => {
+              setSelectedId(id)
+              const node = remoteFiles?.find(f => f.id === id);
+              if (node && node.type === 'file') openFile(node)
+            }} 
+            onDelete={handleDelete}
+            onCreate={(type) => handleFileAction(type === 'file' ? 'new-file' : 'new-folder')}
+          />
+        ) : activeSidebarTab === 'search' ? (
+          <SearchSidebar searchQuery={searchQuery} onSearch={setSearchQuery} />
+        ) : activeSidebarTab === 'git' ? (
+          <GitSidebar />
+        ) : activeSidebarTab === 'run' ? (
+          <DebugSidebar />
+        ) : activeSidebarTab === 'security' ? (
+          <SecuritySidebar />
+        ) : activeSidebarTab === 'database' ? (
+          <DatabaseSidebar />
+        ) : activeSidebarTab === 'extensions' ? (
+          <ExtensionsSidebar installed={['js', 'ts', 'py']} onInstall={() => {}} />
+        ) : null}
         
         <div className="flex-1 flex flex-col relative overflow-hidden border-l border-border/50">
           <div className="flex-1 flex overflow-hidden">
@@ -428,7 +377,7 @@ export default function IDEPage() {
       <footer className="h-7 bg-primary text-primary-foreground flex items-center px-4 justify-between text-[10px] font-bold tracking-wider uppercase select-none z-50">
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse" /> SYSTEM: OPTIMIZED</div>
-          <div className="flex items-center gap-1.5 opacity-80"><Globe className="h-3 w-3" /> USER: {user.displayName || user.email}</div>
+          <div className="flex items-center gap-1.5 opacity-80"><Globe className="h-3 w-3" /> WORKSPACE: {user?.displayName || user?.email || 'GUEST-SESSION'}</div>
         </div>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm"><div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> NEURAL-LINK: ACTIVE</div>
