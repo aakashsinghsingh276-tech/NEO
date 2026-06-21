@@ -1,27 +1,30 @@
 
 {
   "entities": {
-    "Project": {
-      "title": "Project",
-      "description": "A workspace project containing files and settings.",
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Information about the registered user.",
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "ownerId": { "type": "string" }
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["name", "ownerId"]
+      "required": ["email"]
     },
     "File": {
       "title": "File",
-      "description": "A code file within a project.",
+      "description": "A code file or folder within a user's workspace.",
       "type": "object",
       "properties": {
+        "id": { "type": "string" },
         "name": { "type": "string" },
         "path": { "type": "string" },
         "content": { "type": "string" },
         "type": { "type": "string", "enum": ["file", "folder"] },
-        "parentId": { "type": "string" }
+        "parentId": { "type": "string" },
+        "updatedAt": { "type": "object" }
       },
       "required": ["name", "type"]
     }
@@ -30,13 +33,13 @@
     "providers": ["google.com"]
   },
   "firestore": {
-    "/projects/{projectId}": {
-      "schema": "Project",
-      "description": "Collection of projects."
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Individual user profiles."
     },
-    "/projects/{projectId}/files/{fileId}": {
+    "/users/{userId}/files/{fileId}": {
       "schema": "File",
-      "description": "Files and folders within a project."
+      "description": "User specific workspace files and folders."
     }
   }
 }

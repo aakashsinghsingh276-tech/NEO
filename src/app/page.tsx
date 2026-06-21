@@ -10,16 +10,19 @@ import { EditorTabs } from "@/components/ide/EditorTabs"
 import { CodeEditor, getLanguageFromFileName } from "@/components/ide/CodeEditor"
 import { TerminalView } from "@/components/ide/TerminalView"
 import { AIAssistant } from "@/components/ide/AIAssistant"
-import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw, Layers, Database, Code2, Download } from "lucide-react"
+import { FileCode, FileText, Globe, X, Play, Shield, RefreshCw, Layers, Database, Code2, Download, LogIn, Github } from "lucide-react"
 import { NeoCADPanel, AnalyticsPanel, QuantumReadyPanel, ProjectWizard } from "@/components/ide/FeaturePanels"
 import { Toaster } from "@/components/ui/toaster"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { useFirestore, useCollection } from "@/firebase"
+import { useFirestore, useCollection, useUser, useAuth } from "@/firebase"
 import { collection, doc, setDoc, deleteDoc, query, where, serverTimestamp } from "firebase/firestore"
 import { useMemoFirebase } from "@/firebase/firestore/use-memo-firebase"
+import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth"
+import { errorEmitter } from "@/firebase/error-emitter"
+import { FirestorePermissionError } from "@/firebase/errors"
 
 export interface FileNode {
   id: string
@@ -33,13 +36,15 @@ export interface FileNode {
 
 export default function IDEPage() {
   const db = useFirestore();
+  const auth = useAuth();
+  const { user, loading: authLoading } = useUser();
   const { toast } = useToast()
   
-  // Real-time Files from Firestore
+  // Real-time Files from Firestore - scoped to USER
   const filesQuery = useMemoFirebase(() => {
-    if (!db) return null;
-    return collection(db, "projects", "main", "files");
-  }, [db]);
+    if (!db || !user) return null;
+    return collection(db, "users", user.uid, "files");
+  }, [db, user]);
   
   const { data: remoteFiles, loading: filesLoading } = useCollection<any>(filesQuery);
 
@@ -63,9 +68,7 @@ export default function IDEPage() {
   // Construct Tree from Flat List
   const files = useMemo(() => {
     if (!remoteFiles || remoteFiles.length === 0) {
-      return [
-        { id: 'README.md', name: 'README.md', type: 'file' as const, content: '# Welcome to NEO CODE\n\nQuantum Intelligence powered workspace.' }
-      ];
+      return [];
     }
     
     const tree: FileNode[] = [];
@@ -92,9 +95,33 @@ export default function IDEPage() {
   }, [remoteFiles, selectedId]);
 
   const handleUpdateCode = (newCode: string) => {
-    if (!db || !selectedId) return;
-    const docRef = doc(db, "projects", "main", "files", selectedId);
-    setDoc(docRef, { content: newCode }, { merge: true });
+    if (!db || !selectedId || !user) return;
+    const docRef = doc(db, "users", user.uid, "files", selectedId);
+    setDoc(docRef, { content: newCode }, { merge: true })
+      .catch(async () => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: { content: newCode }
+        }));
+      });
+  }
+
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      toast({ title: "Neural Link Established", description: "Successfully authenticated with Quantum Cloud." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Authentication Failed", description: "Could not sync with Google services." });
+    }
+  }
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setTabs([]);
+    setSelectedId(null);
+    toast({ title: "System Offline", description: "Workspace disconnected safely." });
   }
 
   const handleTabClick = (id: string) => {
@@ -129,9 +156,9 @@ export default function IDEPage() {
   }
 
   const createFile = (name: string, content: string = '', parentId?: string) => {
-    if (!db) return;
+    if (!db || !user) return;
     const fileId = `${name.replace(/\s+/g, '-')}-${Date.now()}`;
-    const docRef = doc(db, "projects", "main", "files", fileId);
+    const docRef = doc(db, "users", user.uid, "files", fileId);
     setDoc(docRef, {
       id: fileId,
       name,
@@ -139,86 +166,54 @@ export default function IDEPage() {
       content,
       parentId: parentId || null,
       updatedAt: serverTimestamp()
+    }).catch(async () => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'create',
+        requestResourceData: { name, type: 'file' }
+      }));
     });
-    toast({ title: "Module Initialized", description: `File ${name} synced to User Cloud.` });
+    toast({ title: "Module Initialized", description: `File ${name} synced to Cloud.` });
   }
 
   const createFolder = (name: string, parentId?: string) => {
-    if (!db) return;
+    if (!db || !user) return;
     const folderId = `${name.replace(/\s+/g, '-')}-${Date.now()}`;
-    const docRef = doc(db, "projects", "main", "files", folderId);
+    const docRef = doc(db, "users", user.uid, "files", folderId);
     setDoc(docRef, {
       id: folderId,
       name,
       type: 'folder',
       parentId: parentId || null,
       updatedAt: serverTimestamp()
+    }).catch(async () => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'create',
+        requestResourceData: { name, type: 'folder' }
+      }));
     });
     toast({ title: "Sector Created", description: `Memory cluster ${name} allocated.` });
   }
 
   const handleDelete = (id: string) => {
-    if (!db) return;
-    const docRef = doc(db, "projects", "main", "files", id);
-    deleteDoc(docRef);
+    if (!db || !user) return;
+    const docRef = doc(db, "users", user.uid, "files", id);
+    deleteDoc(docRef).catch(async () => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
     handleTabClose(id);
     toast({ title: "Resource Terminated", description: "Cloud data cleared successfully.", variant: "destructive" });
   }
 
-  const handleSaveToSystem = () => {
-    if (!activeFile) return
-    const blob = new Blob([activeFile.content || ''], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = activeFile.name
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-    toast({ title: "Local Save Successful", description: `File ${activeFile.name} downloaded.` })
-  }
-
-  const handleExportProject = () => {
-    if (!remoteFiles || remoteFiles.length === 0) return;
-    const projectData = JSON.stringify(remoteFiles, null, 2);
-    const blob = new Blob([projectData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `neo-code-project-export.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast({ title: "Project Exported", description: "Entire workspace manifest saved to local storage." });
-  }
-
-  const handleInstallLanguage = (id: string) => {
-    toast({ title: "Fetching Runtime", description: `Synchronizing SDK for ${id.toUpperCase()}...` })
-    setTimeout(() => {
-      setInstalledLanguages(prev => [...prev, id])
-      toast({ title: "Runtime Active", description: `${id.toUpperCase()} SDK is now pre-installed.` })
-    }, 2500)
-  }
-
-  const handleInstallAllLanguages = () => {
-    toast({ title: "Mass Neural Sync", description: "Installing all 50+ language runtimes..." });
-    setTimeout(() => {
-      const allLangs = [
-        'js', 'ts', 'py', 'java', 'cpp', 'go', 'rs', 'php', 'cs', 'lua', 
-        'rb', 'r', 'matlab', 'hs', 'scala', 'pl', 'objc', 'vb', 'sql', 
-        'asm', 'fortran', 'cobol', 'pas', 'ada', 'lisp', 'scm', 'erl', 
-        'ex', 'clj', 'fs', 'groovy', 'sh', 'ps1', 'zig', 'nim', 'cr', 
-        'd', 'val', 'coffee', 'elm', 'hx', 'jl', 'fth', 'kt', 'swift', 
-        'dart', 'cl', 'v', 'vhdl'
-      ];
-      setInstalledLanguages(allLangs);
-      toast({ title: "Sync Complete", description: "Full polyglot engine active." });
-    }, 3000);
-  }
-
   const handleFileAction = (action: string) => {
+    if (!user && action !== 'about') {
+       handleLogin();
+       return;
+    }
     switch(action) {
       case 'new-file':
         setCreateType('file')
@@ -230,20 +225,6 @@ export default function IDEPage() {
         break
       case 'new-project':
         setIsWizardOpen(true)
-        break
-      case 'save-as':
-        handleSaveToSystem()
-        break
-      case 'export-project':
-        handleExportProject()
-        break
-      case 'install-all-languages':
-        handleInstallAllLanguages()
-        break
-      case 'start-debug':
-      case 'run-without-debug':
-        setIsPreviewOpen(true)
-        toast({ title: "Quantum Compilation", description: "Spinning up sandbox environment...", duration: 2000 })
         break
       case 'save':
         toast({ title: "Cloud Sync Complete", description: "Workspace saved to internal database." })
@@ -262,8 +243,6 @@ export default function IDEPage() {
   const confirmCreate = () => {
     if (!newItemName) return
     const parentNode = remoteFiles?.find(f => f.id === selectedId);
-    // If the selected item is a folder, create inside it.
-    // Otherwise, find the selected item's parent and create sibling.
     let parentId = null;
     if (parentNode) {
       parentId = parentNode.type === 'folder' ? parentNode.id : parentNode.parentId;
@@ -276,12 +255,6 @@ export default function IDEPage() {
     }
     setNewItemName('')
     setIsCreateModalOpen(false)
-  }
-
-  const handleWizardComplete = (template: any) => {
-    toast({ title: "Project Initialized", description: `Creating ${template.name} workspace...` })
-    createFolder(template.name.toLowerCase().replace(' ', '-'));
-    setIsWizardOpen(false)
   }
 
   // Resizing Logic
@@ -316,6 +289,49 @@ export default function IDEPage() {
     }
   }, [isDraggingTerminal, onDrag, stopDragging])
 
+  if (authLoading) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-primary gap-4">
+        <div className="relative">
+          <div className="absolute inset-0 bg-primary/20 blur-2xl animate-pulse rounded-full" />
+          <RefreshCw className="h-12 w-12 animate-spin relative z-10" />
+        </div>
+        <p className="text-[10px] font-bold tracking-[0.4em] uppercase animate-pulse">Synchronizing Neural Workspace...</p>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,191,255,0.05)_0%,transparent_70%)]" />
+        <Card className="glass-panel p-12 w-full max-w-md text-center flex flex-col items-center gap-8 relative z-10 rounded-3xl border-primary/20 shadow-[0_0_100px_rgba(0,191,255,0.1)]">
+           <div className="h-20 w-20 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/30 group hover:rotate-90 transition-all duration-500">
+             <Code2 className="h-10 w-10 text-primary drop-shadow-[0_0_10px_#00BFFF]" />
+           </div>
+           <div>
+             <h1 className="text-4xl font-headline font-bold text-foreground mb-3 tracking-tighter">NEO CODE</h1>
+             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-80">Quantum Intelligence IDE V1.0</p>
+           </div>
+           <p className="text-sm text-muted-foreground leading-relaxed">
+             Sign in to sync your professional workspace across spatial planes and access the Quantum AI Core.
+           </p>
+           <div className="flex flex-col gap-3 w-full">
+             <Button onClick={handleLogin} className="w-full h-12 gap-3 bg-primary text-black font-bold uppercase text-xs tracking-widest shadow-[0_0_20px_rgba(0,191,255,0.3)] hover:scale-105 transition-all">
+               <LogIn className="h-4 w-4" /> Start Neural Session
+             </Button>
+             <Button variant="outline" className="w-full h-12 gap-3 border-white/10 hover:bg-white/5 font-bold uppercase text-xs tracking-widest">
+               <Github className="h-4 w-4" /> Open Source Access
+             </Button>
+           </div>
+           <p className="text-[9px] text-muted-foreground uppercase tracking-tighter opacity-50">
+             SECURE QUANTUM LINK | AES-4096 ENCRYPTED
+           </p>
+        </Card>
+      </div>
+    )
+  }
+
   const renderSidebarView = () => {
     switch(activeSidebarTab) {
       case 'explorer':
@@ -332,60 +348,33 @@ export default function IDEPage() {
           onDelete={handleDelete}
           onCreate={(type) => handleFileAction(type === 'file' ? 'new-file' : 'new-folder')}
         />
-      case 'search':
-        return <SearchSidebar searchQuery={searchQuery} onSearch={setSearchQuery} />
-      case 'git':
-        return <GitSidebar />
-      case 'run':
-        return <DebugSidebar />
-      case 'security':
-        return <SecuritySidebar />
-      case 'database':
-        return <DatabaseSidebar />
-      case 'extensions':
-        return <ExtensionsSidebar installed={installedLanguages} onInstall={handleInstallLanguage} />
-      default:
-        return null
+      case 'search': return <SearchSidebar searchQuery={searchQuery} onSearch={setSearchQuery} />
+      case 'git': return <GitSidebar />
+      case 'run': return <DebugSidebar />
+      case 'security': return <SecuritySidebar />
+      case 'database': return <DatabaseSidebar />
+      case 'extensions': return <ExtensionsSidebar installed={installedLanguages} onInstall={(id) => setInstalledLanguages(p => [...p, id])} />
+      default: return null
     }
   }
-
-  const renderMainContent = () => {
-    switch(activeSidebarTab) {
-      case 'neocad': return <NeoCADPanel />
-      case 'analytics': return <AnalyticsPanel />
-      case 'quantum': return <QuantumReadyPanel />
-      default:
-        return (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <EditorTabs tabs={tabs} onTabClick={handleTabClick} onTabClose={handleTabClose} />
-            <CodeEditor 
-              code={activeFile?.content || ''} 
-              fileName={activeFile?.name || 'app.tsx'} 
-              onChange={handleUpdateCode} 
-            />
-          </div>
-        )
-    }
-  }
-
-  const detectedLanguage = useMemo(() => {
-    if (!activeFile) return 'Plain Text'
-    const lang = getLanguageFromFileName(activeFile.name)
-    return lang.charAt(0).toUpperCase() + lang.slice(1)
-  }, [activeFile])
 
   return (
     <main className="h-screen w-screen flex flex-col overflow-hidden bg-background text-foreground selection:bg-primary/30">
-      <TopNav onSearch={setSearchQuery} onAction={handleFileAction} />
+      <TopNav onSearch={setSearchQuery} onAction={handleFileAction} user={user} onLogout={handleLogout} />
       
       <div className="flex-1 flex overflow-hidden">
         <Sidebar activeId={activeSidebarTab} onActiveChange={setActiveSidebarTab} />
-        
         {renderSidebarView()}
         
         <div className="flex-1 flex flex-col relative overflow-hidden border-l border-border/50">
           <div className="flex-1 flex overflow-hidden">
-            {renderMainContent()}
+            {activeSidebarTab === 'neocad' ? <NeoCADPanel /> :
+             activeSidebarTab === 'analytics' ? <AnalyticsPanel /> :
+             activeSidebarTab === 'quantum' ? <QuantumReadyPanel /> :
+             <div className="flex-1 flex flex-col overflow-hidden">
+               <EditorTabs tabs={tabs} onTabClick={handleTabClick} onTabClose={handleTabClose} />
+               <CodeEditor code={activeFile?.content || ''} fileName={activeFile?.name || 'app.tsx'} onChange={handleUpdateCode} />
+             </div>}
             
             <div className={`transition-all duration-300 border-l border-border/50 bg-sidebar/30 ${isAiPanelOpen ? 'w-[380px]' : 'w-0 overflow-hidden'}`}>
                <AIAssistant 
@@ -402,20 +391,12 @@ export default function IDEPage() {
             </div>
           </div>
           
-          <div 
-            onMouseDown={startDragging}
-            className="h-1 bg-border/20 hover:bg-primary/50 cursor-row-resize transition-colors z-50 relative group"
-          >
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
-               <div className="w-12 h-1 bg-primary rounded-full" />
-            </div>
-          </div>
+          <div onMouseDown={startDragging} className="h-1 bg-border/20 hover:bg-primary/50 cursor-row-resize transition-colors z-50 relative group" />
           <TerminalView activeFile={activeFile?.name} height={terminalHeight} />
         </div>
       </div>
 
-      <ProjectWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} onComplete={handleWizardComplete} />
-
+      <ProjectWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} onComplete={(t) => createFolder(t.name.toLowerCase().replace(' ', '-'))} />
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="glass-panel border-primary/20 sm:max-w-[425px]">
           <DialogHeader>
@@ -424,103 +405,19 @@ export default function IDEPage() {
               Initialize New {createType}
             </DialogTitle>
           </DialogHeader>
-          <div className="py-6">
-            <Input 
-              autoFocus
-              placeholder={`Enter ${createType} descriptor...`}
-              value={newItemName}
-              onChange={(e) => setNewItemName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && confirmCreate()}
-              className="bg-black/40 border-white/10 font-code"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} className="text-[10px] uppercase font-bold">ABORT</Button>
-            <Button onClick={confirmCreate} className="bg-primary text-black font-bold text-[10px] uppercase">EXECUTE</Button>
-          </DialogFooter>
+          <div className="py-6"><Input autoFocus placeholder={`Enter ${createType} descriptor...`} value={newItemName} onChange={(e) => setNewItemName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && confirmCreate()} className="bg-black/40 border-white/10 font-code" /></div>
+          <DialogFooter><Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} className="text-[10px] uppercase font-bold">ABORT</Button><Button onClick={confirmCreate} className="bg-primary text-black font-bold text-[10px] uppercase">EXECUTE</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {isPreviewOpen && (
-        <div className="fixed inset-4 z-[100] glass-panel rounded-2xl border-primary/40 shadow-[0_0_100px_rgba(0,191,255,0.2)] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
-          <div className="h-12 bg-black/60 border-b border-white/10 flex items-center justify-between px-6">
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1.5 mr-4">
-                <div className="h-3 w-3 rounded-full bg-red-500/50" />
-                <div className="h-3 w-3 rounded-full bg-yellow-500/50" />
-                <div className="h-3 w-3 rounded-full bg-green-500/50" />
-              </div>
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1 text-[10px] text-muted-foreground w-[400px]">
-                <Globe className="h-3 w-3" />
-                <span className="truncate">https://neocode-quantum-preview.local:3000</span>
-                <RefreshCw className="h-3 w-3 ml-auto hover:text-primary cursor-pointer" />
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-               <div className="flex items-center gap-2 text-[10px] text-primary font-bold animate-pulse">
-                 <Shield className="h-3 w-3" /> SECURE LINK ACTIVE
-               </div>
-               <Button variant="ghost" size="icon" onClick={() => setIsPreviewOpen(false)} className="h-8 w-8 hover:text-red-500">
-                 <X className="h-4 w-4" />
-               </Button>
-            </div>
-          </div>
-          <div className="flex-1 bg-slate-900 flex items-center justify-center p-12 overflow-auto relative">
-             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,191,255,0.05)_0%,transparent_70%)]" />
-             <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl min-h-[500px] p-12 flex flex-col items-center justify-center text-center relative z-10">
-                <div className="h-24 w-24 bg-primary/20 rounded-full flex items-center justify-center mb-8 border border-primary/30">
-                  <Play className="h-12 w-12 text-primary fill-primary" />
-                </div>
-                <h2 className="text-4xl font-bold text-slate-800 mb-4 font-headline">NEO CODE Sandbox</h2>
-                <p className="text-slate-500 max-w-md mb-8">
-                  Virtual environment running `{activeFile?.name || 'app.tsx'}`. 
-                  All neural computations are being hot-reloaded in real-time.
-                </p>
-                <div className="grid grid-cols-2 gap-6 w-full max-w-2xl">
-                   <div className="p-8 border border-slate-100 rounded-2xl text-left bg-slate-50 hover:border-primary/20 transition-all cursor-pointer">
-                      <p className="text-[10px] font-bold text-primary uppercase mb-2 tracking-widest">Active Route</p>
-                      <p className="text-lg font-code text-slate-700 font-bold">/{activeFile?.name || 'index.html'}</p>
-                   </div>
-                   <div className="p-8 border border-slate-100 rounded-2xl text-left bg-slate-50 hover:border-primary/20 transition-all cursor-pointer">
-                      <p className="text-[10px] font-bold text-accent uppercase mb-2 tracking-widest">Server Status</p>
-                      <p className="text-lg font-code text-slate-700 font-bold">200 OK - 2ms Latency</p>
-                   </div>
-                </div>
-                <Button className="mt-8 gap-2 bg-primary text-black font-bold uppercase" onClick={handleSaveToSystem}>
-                  <Download className="h-4 w-4" /> Download This File
-                </Button>
-             </div>
-          </div>
-        </div>
-      )}
-
+      
       <footer className="h-7 bg-primary text-primary-foreground flex items-center px-4 justify-between text-[10px] font-bold tracking-wider uppercase select-none z-50">
         <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1.5">
-             <div className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse" />
-             SYSTEM: OPTIMIZED
-          </div>
-          <div className="flex items-center gap-1.5 opacity-80">
-            <Layers className="h-3 w-3" /> MAIN BRANCH
-          </div>
-          <span className="opacity-60">UTF-8</span>
-          <span className="opacity-60">L1, C1</span>
+          <div className="flex items-center gap-1.5"><div className="h-2 w-2 rounded-full bg-primary-foreground animate-pulse" /> SYSTEM: OPTIMIZED</div>
+          <div className="flex items-center gap-1.5 opacity-80"><Globe className="h-3 w-3" /> USER: {user.displayName || user.email}</div>
         </div>
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm">
-             <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-             NEURAL-LINK: ACTIVE
-          </div>
-          <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm">
-             <Code2 className="h-3 w-3" />
-             MODEL: {activeModel}
-          </div>
-          <span className="flex items-center gap-1.5">
-            <FileCode className="h-3.5 w-3.5" /> {detectedLanguage}
-          </span>
-          <div className="flex items-center gap-1 text-[9px]">
-            LINK: <span className="text-green-900">ENCRYPTED</span>
-          </div>
+          <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm"><div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> NEURAL-LINK: ACTIVE</div>
+          <div className="flex items-center gap-2 bg-black/10 px-3 py-0.5 rounded-sm"><Code2 className="h-3 w-3" /> MODEL: {activeModel}</div>
         </div>
       </footer>
       <Toaster />
